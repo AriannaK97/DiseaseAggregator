@@ -1,12 +1,48 @@
 #!/bin/bash
 #call with >5 args
 
+# Declare an array of string with names
+declare -a NameArray=("Linux Mint" "Fedora" "Red Hat Linux" "Ubuntu" "Debian" )
+
 generate_random_name(){
-  FLOOR=3
-  let strLength=$RANDOM+$FLOOR;
-  name=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
-  surname=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
-  echo "$name $surname"
+  if [ ! -f "$namesFile" ];
+  then
+    echo "File $namesFile does not exist"
+    exit 1;
+  elif [ ! -f "$surnamesFile" ];
+  then
+    echo "File $surnamesFile does not exist"
+    exit 1 ;
+  else
+    FLOOR=1
+    NAME_RANGE=$(< "./names" wc -l) #number of lines is the range RANDOM can act
+    SURNAME_RANGE=$(< "./surnames" wc -l) #number of lines is the range RANDOM can act
+
+    nameLine=0   #initialize
+    surnameLine=0
+    while [ "$nameLine" -le $FLOOR ]
+    do
+      nameLine=$RANDOM
+      let "nameLine%=$NAME_RANGE"  # Scales $number down within $DAY_RANGE.
+    done
+
+    while [ "$surnameLine" -le $FLOOR ]
+    do
+      surnameLine=$RANDOM
+      let "surnameLine%=$SURNAME_RANGE"  # Scales $number down within $DAY_RANGE.
+    done
+
+    name=$(sed "${nameLine}q;d" "$namesFile");
+    surname=$(sed "${surnameLine}q;d" "$surnamesFile");
+
+    #code to generate random alphanumerics for names and surnames
+    #FLOOR=3
+    #let strLength=$RANDOM+$FLOOR;
+    #name=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
+    #surname=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
+
+    echo "$name $surname"
+  fi
 }
 
 generate_random_date(){
@@ -28,8 +64,6 @@ generate_random_date(){
     let "month %= $MONTH_RANGE"  # Scales $number down within $DAY_RANGE.
   done
 
-  #echo "Random number between $FLOOR and $MONTH_RANGE ---  $month"
-
   YEAR_RANGE=2020
   YEAR_FLOOR=1960
   year=0   #initialize
@@ -38,9 +72,6 @@ generate_random_date(){
     year=$RANDOM
     let "year %= $YEAR_RANGE"  # Scales $number down within $DAY_RANGE.
   done
-
-  #echo "Random number between $YEAR_FLOOR and $YEAR_RANGE ---  $year"
-
   echo "$day-$month-$year"
 
 }
@@ -48,7 +79,7 @@ generate_random_date(){
 generate_entry_type(){
   BINARY=2
   T=1
-  number=$RANDOM
+  probability=$RANDOM
 
   let "probability %= $BINARY"
 
@@ -75,28 +106,44 @@ get_random_age(){
 
 get_random_disease(){
   FLOOR=1;
-  numOfLines=$(< "$diseaseFile" wc -l)
-  echo "the file has $numOfLines"
-  picker=$((RANDOM%=$numOfLines));
-  picker=$(picker+=$FLOOR);
+  RANGE=$(< "$diseaseFile" wc -l) #number of lines is the range RANDOM can act
+  picker=0
+  while [ "$picker" -le $FLOOR ]
+  do
+    picker=$RANDOM
+    let "picker %= $RANGE"  # Scales $number down within $RANGE.
+  done
   line=$(sed "${picker}q;d" "$diseaseFile");
   echo "$line"
 }
 
 create_new_record(){
-  id=$RANDOM
-  echo $id generate_entry_type generate_random_name get_random_disease get_random_age
+  #id=$RANDOM
+  id=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
+  entryType=$(generate_entry_type)
+  name=$(generate_random_name)
+  disease=$(get_random_disease)
+  age=$(get_random_age)
+  echo $id "$entryType" "$name" "$disease" "$age"
+}
+
+create_num_files_per_directory(){
+  for ((z = 0 ; z < "$numFilesPerDirectory" ; z++));
+    do
+      create_new_file
+  done
 }
 
 create_new_file(){
-    while true; do
+    while true;
+    do
       filename=$(generate_random_date)
       if [ ! -f "$filename" ]; then
           break
       fi
     done
-    for((i=0; i < $5; i++)){
-      echo create_new_record > ./$3/$line
+    for((j=0; j < "$numRecordsPerFile"; j++)){
+      echo -e "$(create_new_record)" >> ./"$inputDir"/"$line/""$filename"
     }
 }
 
@@ -108,10 +155,13 @@ countriesFile=$2;
 inputDir=$3;
 numFilesPerDirectory=$4;
 numRecordsPerFile=$5;
+namesFile="./names"
+surnamesFile="./surnames"
 
 #checking input numbers
 isNum='^[0-9]+$'
-if ! [[ $numFilesPerDirectory =~ $isNum ]] || ! [[ $numRecordsPerFile =~ $isNum ]] ; then
+if ! [[ $numFilesPerDirectory =~ $isNum ]] || ! [[ $numRecordsPerFile =~ $isNum ]] ;
+then
     >&2 echo "Error! Wrong Parameters, beeter luck next time"
     exit 1
 fi
@@ -128,8 +178,8 @@ fi
 
 #create subdirectories from countries
 numOfCountries=$(< "$countriesFile" wc -l)
-echo $numOfCountries
-for ((i = 0 ; i < $numOfCountries ; i++));
+echo "$numOfCountries"
+for ((i = 0 ; i < "$numOfCountries" ; i++));
   do
     line=$(sed "${i}q;d" "$countriesFile");
     if [ ! -d "./$inputDir/$line" ]
@@ -137,21 +187,9 @@ for ((i = 0 ; i < $numOfCountries ; i++));
       echo "Creating new subDirectory in directory $inputDir with name $line"
       mkdir -p "./$inputDir/$line"
       echo "File created"
+      create_num_files_per_directory
     else
       echo "File exists"
     fi
 done
 
-generate_random_date
-generate_entry_type
-generate_random_name
-get_random_disease
-get_random_age
-
-#for str
-#  do
-#    echo "The value of the iterator is: ${str}"
-#    var=$1
-#    shift
-#    echo "var = $var and args = $#"
-#    done
