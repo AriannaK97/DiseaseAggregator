@@ -12,16 +12,13 @@ int main(int argc, char** argv) {
 /*****************************************************************************
  *                       Handling input files                                *
  *****************************************************************************/
-    FILE *patientRecordsFile;
-    patientRecordsFile = openFile(arguments->inputFile);
+    //FILE *patientRecordsFile;
     CmdManager* cmdManager;
+    cmdManager = initializeStructures(DISEASE_HT_Entries_NUM, COUNTRY_HT_Entries_NUM, BUCKET_SIZE);
+    cmdManager = readDirectoryFiles_And_PopulateAggregator(arguments, cmdManager);
 
-    cmdManager = read_input_file(patientRecordsFile, getMaxFromFile(patientRecordsFile, LINE_LENGTH),
-            arguments->diseaseHashtableNumOfEntries,arguments->countryHashTableNumOfEntries, arguments->bucketSize);
-
-    free(arguments->inputFile);
+    free(arguments->input_dir);
     free(arguments);
-    fclose(patientRecordsFile);
 
     /**
      * Uncomment the line below to see all the inserted patients in the list

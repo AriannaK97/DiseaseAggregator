@@ -197,7 +197,7 @@ void printRbTree(rbNode* root, int depth){
     PatientCase* patient;
     patient = root->listNodeEntry->item;
     fprintf(stdout,"depth = %d, case number: %s | name: %s | surname: %s | virus: %s | country: %s | importDate: %d-%d-%d | "
-                   "exportDate: %d-%d-%d\n",depth, patient->caseNum, patient->name, patient->surname, patient->virus,
+                   "exportDate: %d-%d-%d\n", depth, patient->recordID, patient->name, patient->surname, patient->virus,
             patient->country, patient->entryDate->day, patient->entryDate->month, patient->entryDate->year,
             patient->exitDate->day, patient->exitDate->month, patient->exitDate->year);
     printRbTree(root->right, depth+1);
@@ -322,7 +322,7 @@ rbNode* searchRbNodeRec(rbNode* root, rbNode* nil, void* key){
         PatientCase* patient = root->listNodeEntry->item;
         fprintf(stdout,
                 "case number: %s | name: %s | surname: %s | virus: %s | country: %s | importDate: %d-%d-%d | "
-                "exportDate: %d-%d-%d\n", patient->caseNum, patient->name, patient->surname, patient->virus,
+                "exportDate: %d-%d-%d\n", patient->recordID, patient->name, patient->surname, patient->virus,
                 patient->country, patient->entryDate->day, patient->entryDate->month, patient->entryDate->year,
                 patient->exitDate->day, patient->exitDate->month, patient->exitDate->year);
         searchRbNodeRec(root->right, nil, key);

@@ -13,6 +13,7 @@
 #include "binaryMaxHeap.h"
 
 #define DATA_SPACE 32
+#define DIR_LEN 256
 
 #define SEARCH 1
 #define PRINT 2

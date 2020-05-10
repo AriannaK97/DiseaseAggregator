@@ -17,14 +17,23 @@ typedef struct Date{
 }Date;
 
 typedef struct PatientCase{
-    char* caseNum;
+    char* recordID;
+    char* type;
     char* name;
     char* surname;
     char* virus;
     char* country;
+    int age;
     struct Date* entryDate;
     struct Date* exitDate;
 }PatientCase;
+
+typedef struct FileExplorer{
+    char* country;  /*current directory*/
+    char* date;     /*current filename*/
+    int failedEntries;
+    int successfulEntries;
+}FileExplorer;
 
 typedef struct Node{
     void* item;
@@ -40,15 +49,15 @@ typedef struct CmdManager{
     struct List* patientList;
     struct HashTable* diseaseHashTable;
     struct HashTable* countryHashTable;
+    FileExplorer* fileExplorer;
     size_t bucketSize;
 }CmdManager;
 
 
 typedef struct InputArguments{
-    size_t bucketSize;
-    int diseaseHashtableNumOfEntries;
-    int countryHashTableNumOfEntries;
-    char *inputFile;
+    size_t bufferSize;
+    int numWorkers;
+    char *input_dir;
 }InputArguments;
 
 #endif //DISEASEMONITOR_STRUCTS_H

@@ -66,7 +66,8 @@ void nodeItemDeallock(PatientCase* item){
     free(item->surname);
     free(item->country);
     free(item->virus);
-    free(item->caseNum);
+    free(item->recordID);
+    free(item->type);
     free(item);
 }
 
@@ -80,7 +81,7 @@ Node* popNode(List* linkedList){
 }
 
 bool compareListItemPatient(PatientCase* patient, char* key){
-    if (strcmp(patient->caseNum, key)==0){
+    if (strcmp(patient->recordID, key) == 0){
         return true;
     }
     return false;
@@ -97,10 +98,10 @@ bool searchNodeForRecordID_ExitDateUpdate(List* linkedList, char* key, Date* exi
                 exitPatient->exitDate->year = exitDate->year;
                 return true;
             }else{
-                fprintf(stderr, "Error\n");
+                //fprintf(stderr, "Error\n");
 /*                fprintf(stdout,"Exit date could not be updated for patient:\n case number: %s | name: %s | "
                                "surname: %s | virus: %s | country: %s | entryDate: %d-%d-%d\n\nInvalid exit date: "
-                               "%d-%d-%d", exitPatient->caseNum, exitPatient->name, exitPatient->surname,
+                               "%d-%d-%d", exitPatient->recordID, exitPatient->name, exitPatient->surname,
                                exitPatient->virus, exitPatient->country, exitPatient->entryDate->day,
                                exitPatient->entryDate->month, exitPatient->entryDate->year, exitPatient->exitDate->day,
                                exitPatient->exitDate->month, exitPatient->exitDate->year);*/
@@ -110,7 +111,7 @@ bool searchNodeForRecordID_ExitDateUpdate(List* linkedList, char* key, Date* exi
         node = node->next;
     }
     //fprintf(stderr, "Could not find the patient with record id %s in the system\n", key);
-    fprintf(stderr, "Error\n");
+    //fprintf(stderr, "Error\n");
     return false;
 }
 
@@ -155,9 +156,9 @@ void printList(List* patientList){
     while (newNode != NULL && newNode->item != NULL){
         newPatient = (PatientCase*)newNode->item;
         fprintf(stdout,"case number: %s | name: %s | surname: %s | virus: %s | country: %s | importDate: %d-%d-%d | "
-                       "exportDate: %d-%d-%d\n", newPatient->caseNum, newPatient->name, newPatient->surname, newPatient->virus,
+                       "exportDate: %d-%d-%d\n", newPatient->recordID, newPatient->name, newPatient->surname, newPatient->virus,
                 newPatient->country, newPatient->entryDate->day, newPatient->entryDate->month, newPatient->entryDate->year
-                ,newPatient->exitDate->day, newPatient->exitDate->month, newPatient->exitDate->year);
+                , newPatient->exitDate->day, newPatient->exitDate->month, newPatient->exitDate->year);
 
         newNode = newNode->next;
     }
@@ -172,9 +173,9 @@ void printListNode(Node* node){
     }
     PatientCase* patient = node->item;
     fprintf(stdout,"case number: %s | name: %s | surname: %s | virus: %s | country: %s | importDate: %d-%d-%d | "
-                   "exportDate: %d-%d-%d\n", patient->caseNum, patient->name, patient->surname, patient->virus,
-                   patient->country, patient->entryDate->day, patient->entryDate->month, patient->entryDate->year,
-                   patient->exitDate->day, patient->exitDate->month, patient->exitDate->year);
+                   "exportDate: %d-%d-%d\n", patient->recordID, patient->name, patient->surname, patient->virus,
+            patient->country, patient->entryDate->day, patient->entryDate->month, patient->entryDate->year,
+            patient->exitDate->day, patient->exitDate->month, patient->exitDate->year);
 }
 
 void printListNodeHeap(Node* node){
@@ -184,3 +185,4 @@ void printListNodeHeap(Node* node){
     HeapNode* heapnode = node->item;
     fprintf(stdout,"%s: %d\n", heapnode->data, heapnode->dataSum);
 }
+

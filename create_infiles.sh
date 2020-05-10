@@ -1,9 +1,6 @@
 #!/bin/bash
 #call with >5 args
 
-# Declare an array of string with names
-declare -a NameArray=("Linux Mint" "Fedora" "Red Hat Linux" "Ubuntu" "Debian" )
-
 generate_random_name(){
   if [ ! -f "$namesFile" ];
   then
@@ -179,7 +176,7 @@ fi
 #create subdirectories from countries
 numOfCountries=$(< "$countriesFile" wc -l)
 echo "$numOfCountries"
-for ((i = 0 ; i < "$numOfCountries" ; i++));
+for ((i = 1 ; i <= "$numOfCountries" ; i++));
   do
     line=$(sed "${i}q;d" "$countriesFile");
     if [ ! -d "./$inputDir/$line" ]
