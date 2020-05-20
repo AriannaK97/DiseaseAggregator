@@ -28,6 +28,8 @@ void printListNode(Node* node);
 
 bool searchListForRecordID(List* linkedList, char* key);
 
+PatientCase* getPatientFromList(List* linkedList, char* recordID);
+
 bool searchNodeForRecordID_ExitDateUpdate(List* linkedList, char* key, Date* exitDate);
 
 bool compareListItemPatient(PatientCase* patient, char* key);

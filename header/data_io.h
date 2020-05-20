@@ -43,4 +43,6 @@ bool setDate(PatientCase *patient, char *buffer);
 CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize);
 
 void deallockFileExplorer(FileExplorer *fileExplorer);
+
+int compare (const void * a, const void * b);
 #endif //DISEASEMONITOR_DATA_IO_H

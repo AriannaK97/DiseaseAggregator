@@ -121,7 +121,13 @@ create_new_record(){
   name=$(generate_random_name)
   disease=$(get_random_disease)
   age=$(get_random_age)
-  echo $id "$entryType" "$name" "$disease" "$age"
+  echo "$id" "$entryType" "$name" "$disease" "$age"
+#  if [ "$entryType" == "EXIT" ]; then
+#    echo "$id" "ENTRY" "$name" "$disease" "$age"
+#    echo "$id" "$entryType" "$name" "$disease" "$age"
+#  else
+#    echo "$id" "$entryType" "$name" "$disease" "$age"
+#  fi
 }
 
 create_num_files_per_directory(){

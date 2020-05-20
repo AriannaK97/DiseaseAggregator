@@ -33,6 +33,7 @@ typedef struct FileExplorer{
     char* date;     /*current filename*/
     int failedEntries;
     int successfulEntries;
+    char** fileNameArray;
 }FileExplorer;
 
 typedef struct Node{

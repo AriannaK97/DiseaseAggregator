@@ -214,6 +214,17 @@ bool checkDateSpace(PatientCase* patient, Date* date1, Date* date2){
     return false;
 }
 
+bool checkExitDateSpace(PatientCase* patient, Date* date1, Date* date2){
+
+    if(patient->exitDate->day == 0){
+        return false;
+    }
+
+    if (compare_dates(patient->exitDate, date1) >=0 && compare_dates(patient->exitDate, date2) <= 0)
+        return true;
+    return false;
+}
+
 int countPatients_BetweenDates(rbTree* tree, int operationCall, HashElement* hashIterator){
     return rbNodeCounter_BetweenDates(tree->root, tree->nil, operationCall, hashIterator);
 }
@@ -230,12 +241,18 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
     if(operationCall == COUNT_ALL_BETWEEN_DATES || operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS){
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2))
             counter++;
-    } else if (operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY){
+    } else if (operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE){
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
-            && strcmp(patient->country, hashIterator->country) == 0){
+            && strcmp(patient->virus, hashIterator->virus) == 0){
             counter++;
         }
-    } else if(operationCall == GET_HEAP_NODES_VIRUS_DATES){
+    } else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT ){
+        if(checkExitDateSpace(patient, hashIterator->date1, hashIterator->date2)
+           && strcmp(patient->virus, hashIterator->virus) == 0){
+            counter++;
+        }
+    }
+    else if(operationCall == GET_HEAP_NODES_VIRUS_DATES){
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)){
             if(hashIterator->heapNodes == NULL){
                 HeapNode* newNode = createHeapNode(patient->country, 1);
@@ -243,18 +260,6 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
                 hashIterator->heapNodes = linkedListInit(listNode);
             }else if(updateListVirusSum(hashIterator->heapNodes, patient->country) == false){
                 HeapNode* newNode = createHeapNode(patient->country, 1);
-                listNode = nodeInit(newNode);
-                push(listNode, hashIterator->heapNodes);
-            }
-        }
-    }else if(operationCall== GET_HEAP_NODES_COUNTRY_DATES){
-        if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)){
-            if(hashIterator->heapNodes == NULL){
-                HeapNode* newNode = createHeapNode(patient->virus, 1);
-                listNode = nodeInit(newNode);
-                hashIterator->heapNodes = linkedListInit(listNode);
-            }else if(updateListVirusSum(hashIterator->heapNodes, patient->virus) == false){
-                HeapNode* newNode = createHeapNode(patient->virus, 1);
                 listNode = nodeInit(newNode);
                 push(listNode, hashIterator->heapNodes);
             }

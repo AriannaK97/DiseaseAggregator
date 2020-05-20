@@ -31,10 +31,16 @@ CmdManager* readDirectoryFiles_And_PopulateAggregator(InputArguments* arguments,
     }
     strcpy(dirPath, arguments->input_dir);
     strcat(dirPath, "/");
+    int numOfSubDirectories = 0;
+    while((in_dir = readdir(FD))){
+        numOfSubDirectories+=1;
+    }
+    rewinddir(FD);
+    cmdManager->fileExplorer->fileNameArray = malloc(numOfSubDirectories*sizeof(char*));
+    for(int i = 0; i < numOfSubDirectories; i++){
+        cmdManager->fileExplorer->fileNameArray[i] = malloc(sizeof(char)*9);
+    }
     while ((in_dir = readdir(FD))){
-        /* On linux/Unix we don't want current and parent directories
-         * On windows machine too, thanks Greg Hewgill
-         */
         if (!strcmp (in_dir->d_name, "."))
             continue;
         if (!strcmp (in_dir->d_name, ".."))
@@ -48,6 +54,7 @@ CmdManager* readDirectoryFiles_And_PopulateAggregator(InputArguments* arguments,
             fprintf(stderr, "Error : Failed to open input directory %s - %s\n",subDirPath, strerror(errno));
             exit(1);
         }
+        int numOfFileInSubDirectory = 0;
         while ((in_file = readdir(SubFD))) {
             /* On linux/Unix we don't want current and parent directories
              * On windows machine too, thanks Greg Hewgill
@@ -65,11 +72,14 @@ CmdManager* readDirectoryFiles_And_PopulateAggregator(InputArguments* arguments,
             }
             strcpy(cmdManager->fileExplorer->country,in_dir->d_name);
             strcpy(cmdManager->fileExplorer->date,in_file->d_name);
+            strcpy(cmdManager->fileExplorer->fileNameArray[numOfFileInSubDirectory], in_file->d_name);
             cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager, cmdManager->fileExplorer);
             fclose(entry_file);
             strcpy(subDirPath, dirPath);
             strcat(subDirPath, in_dir->d_name);
+            numOfFileInSubDirectory++;
         }
+        //qsort(cmdManager->fileExplorer->fileNameArray, sizeof(char*), 9 , compare);
         strcpy(dirPath, arguments->input_dir);
         strcat(dirPath, "/");
         closedir(SubFD);
@@ -84,6 +94,28 @@ CmdManager* readDirectoryFiles_And_PopulateAggregator(InputArguments* arguments,
     free(subDirPath);
     return cmdManager;
 }
+
+int compare (const void * a, const void * b){
+
+    char *ia = (char *)a; // casting pointer types
+    char *ib = (char *)b;
+
+    Date *date1, *date2;
+    date1 = malloc(sizeof(struct Date));
+    date2 = malloc(sizeof(struct Date));
+    printf("%s\n", ia);
+    date1->day = atoi(strtok(ia,"-"));
+    date1->month = atoi(strtok(NULL, "-"));
+    date1->year = atoi(strtok(NULL, "-"));
+
+    date2->day = atoi(strtok(ib,"-"));
+    date2->month = atoi(strtok(NULL, "-"));
+    date2->year = atoi(strtok(NULL, "-"));
+
+    return compare_dates(date1, date2);
+
+}
+
 
 FILE* openFile(char *inputFile){
     FILE *patientRecordsFile;
@@ -297,14 +329,16 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
                 hashPut(cmdManager->countryHashTable, strlen(newPatient->country), newPatient->country, cmdManager->bucketSize, newNode);
                 fileExplorer->successfulEntries+=1;
             }else if(cmdManager->patientList!=NULL && strcmp(newPatient->type, "EXIT")==0){
+                if(strcmp(newPatient->country, "Austria") == 0 && strcmp(newPatient->virus, "HPV")==0){
+                    fprintf(stdout,"bla");
+                }
                 if(searchNodeForRecordID_ExitDateUpdate(cmdManager->patientList, newPatient->recordID, newPatient->exitDate)) {
                     nodeItemDeallock(newPatient);
                     fileExplorer->successfulEntries += 1;
                 }else{
                     nodeItemDeallock(newPatient);
                     fileExplorer->failedEntries+=1;
-/*                    fprintf(stderr, "Invalid Patient type EXIT - Discarded\n");
-                    fprintf(stdout, "Continuing...\n");*/
+                    fprintf(stderr, "Error\n");
                 }
             }
         }

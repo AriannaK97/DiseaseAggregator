@@ -186,3 +186,13 @@ void printListNodeHeap(Node* node){
     fprintf(stdout,"%s: %d\n", heapnode->data, heapnode->dataSum);
 }
 
+PatientCase* getPatientFromList(List* linkedList, char* recordID){
+    Node* node = linkedList->head;
+    while (node != NULL){
+        if (compareListItemPatient(node->item, recordID)){
+            return node->item;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
