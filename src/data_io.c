@@ -3,119 +3,12 @@
 //
 #define  _GNU_SOURCE
 #include "../header/data_io.h"
+#include "../header/diseaseAggregator.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
-
-CmdManager* readDirectoryFiles_And_PopulateAggregator(InputArguments* arguments, CmdManager* cmdManager){
-    DIR* FD;
-    DIR* SubFD;
-    struct dirent* in_dir;
-    struct dirent* in_file;
-    FILE    *entry_file;
-    char *dirPath = malloc(DIR_LEN*sizeof(char));;
-    char *subDirPath = malloc(DIR_LEN*sizeof(char));;
-
-    cmdManager->fileExplorer =  malloc(sizeof(struct FileExplorer));
-    cmdManager->fileExplorer->date = malloc(DATA_SPACE*sizeof(char));
-    cmdManager->fileExplorer->country = malloc(DATA_SPACE*sizeof(char));
-    cmdManager->fileExplorer->failedEntries = 0;
-    cmdManager->fileExplorer->successfulEntries = 0;
-
-    /* Scanning the in directory */
-    if (NULL == (FD = opendir (arguments->input_dir))){
-        fprintf(stderr, "Error : Failed to open input directory - %s\n", strerror(errno));
-        exit(1);
-    }
-    strcpy(dirPath, arguments->input_dir);
-    strcat(dirPath, "/");
-    int numOfSubDirectories = 0;
-    while((in_dir = readdir(FD))){
-        numOfSubDirectories+=1;
-    }
-    rewinddir(FD);
-    cmdManager->fileExplorer->fileNameArray = malloc(numOfSubDirectories*sizeof(char*));
-    for(int i = 0; i < numOfSubDirectories; i++){
-        cmdManager->fileExplorer->fileNameArray[i] = malloc(sizeof(char)*9);
-    }
-    while ((in_dir = readdir(FD))){
-        if (!strcmp (in_dir->d_name, "."))
-            continue;
-        if (!strcmp (in_dir->d_name, ".."))
-            continue;
-        /*create current deirectory's path*/
-        strcpy(subDirPath, dirPath);
-        strcat(subDirPath, in_dir->d_name);
-
-        /* Open subdirestory*/
-        if (NULL == (SubFD = opendir (subDirPath))){
-            fprintf(stderr, "Error : Failed to open input directory %s - %s\n",subDirPath, strerror(errno));
-            exit(1);
-        }
-        int numOfFileInSubDirectory = 0;
-        while ((in_file = readdir(SubFD))) {
-            /* On linux/Unix we don't want current and parent directories
-             * On windows machine too, thanks Greg Hewgill
-             */
-            if (!strcmp (in_file->d_name, "."))
-                continue;
-            if (!strcmp (in_file->d_name, ".."))
-                continue;
-            strcat(subDirPath, "/");
-            strcat(subDirPath, in_file->d_name);
-            entry_file = fopen(subDirPath, "r");
-            if (entry_file == NULL) {
-                fprintf(stderr, "Error : Failed to open entry file %s - %s\n",subDirPath, strerror(errno));
-                exit(1);
-            }
-            strcpy(cmdManager->fileExplorer->country,in_dir->d_name);
-            strcpy(cmdManager->fileExplorer->date,in_file->d_name);
-            strcpy(cmdManager->fileExplorer->fileNameArray[numOfFileInSubDirectory], in_file->d_name);
-            cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager, cmdManager->fileExplorer);
-            fclose(entry_file);
-            strcpy(subDirPath, dirPath);
-            strcat(subDirPath, in_dir->d_name);
-            numOfFileInSubDirectory++;
-        }
-        //qsort(cmdManager->fileExplorer->fileNameArray, sizeof(char*), 9 , compare);
-        strcpy(dirPath, arguments->input_dir);
-        strcat(dirPath, "/");
-        closedir(SubFD);
-    }
-
-    fprintf(stdout, "Failed entries: %d\nSuccessful Entries: %d\n"
-                    "total Entries: %d\n", cmdManager->fileExplorer->failedEntries, cmdManager->fileExplorer->successfulEntries,
-            cmdManager->fileExplorer->failedEntries+cmdManager->fileExplorer->successfulEntries);
-
-    closedir(FD);
-    free(dirPath);
-    free(subDirPath);
-    return cmdManager;
-}
-
-int compare (const void * a, const void * b){
-
-    char *ia = (char *)a; // casting pointer types
-    char *ib = (char *)b;
-
-    Date *date1, *date2;
-    date1 = malloc(sizeof(struct Date));
-    date2 = malloc(sizeof(struct Date));
-    printf("%s\n", ia);
-    date1->day = atoi(strtok(ia,"-"));
-    date1->month = atoi(strtok(NULL, "-"));
-    date1->year = atoi(strtok(NULL, "-"));
-
-    date2->day = atoi(strtok(ib,"-"));
-    date2->month = atoi(strtok(NULL, "-"));
-    date2->year = atoi(strtok(NULL, "-"));
-
-    return compare_dates(date1, date2);
-
-}
-
 
 FILE* openFile(char *inputFile){
     FILE *patientRecordsFile;
@@ -208,7 +101,7 @@ int getMaxFromFile(FILE* patientRecordsFile, int returnVal){
 }
 
 
-PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer){
+PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNum){
     const char* delim = " ";
     int tokenCase = 0;
     char* token = NULL;
@@ -250,10 +143,17 @@ PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer){
 
         tokenCase++;
     }
+
+    if(strcmp(newPatient->recordID, "Hvyfj8") == 0){
+        printf("bla\n");
+    }
+
     newPatient->country = malloc(DATA_SPACE*sizeof(char));
     strcpy(newPatient->country, fileExplorer->country);
-    if(!setDate(newPatient, fileExplorer->date)){
+    if(!setDate(newPatient, fileExplorer->fileArray[dirNum][fileExplorerPointer].fileName)){
         fprintf(stderr, "Date Error!\n");
+        free(newPatient);
+        return NULL;
     }
     return newPatient;
 }
@@ -276,11 +176,11 @@ bool setDate(PatientCase *patient, char *buffer){
     return _ret;
 }
 
-bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize){
+bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize, int fileExplorerPointer, int dirNum){
     PatientCase* newPatient;
     Node* newNode;
 
-    newPatient = getPatient(buffer, NULL);
+    newPatient = getPatient(buffer, NULL, 1, 1);
     newNode = nodeInit(newPatient);
 
     if(patientList->head == NULL){
@@ -293,8 +193,9 @@ bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, Ha
     return true;
 }
 
-CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize){
+CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize, int fileArraySize){
     CmdManager* cmdManager = malloc(sizeof(struct CmdManager));
+    cmdManager->directoryExplorer = malloc(sizeof(struct FileExplorer));
     List* patientList = NULL;
 
     HashTable* diseaseHashTable = hashCreate(diseaseHashtableNumOfEntries);
@@ -306,17 +207,22 @@ CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHa
     cmdManager->countryHashTable = countryHashTable;
     cmdManager->diseaseHashTable = diseaseHashTable;
     cmdManager->bucketSize = bucketSize;
+    cmdManager->directoryExplorer->country = malloc(sizeof(char) * DIR_LEN);
+    cmdManager->directoryExplorer->successfulEntries = 0;
+    cmdManager->directoryExplorer->failedEntries = 0;
+    cmdManager->directoryExplorer->fileArray = malloc(sizeof(FileItem*) * fileArraySize);
 
     return cmdManager;
 }
 
-CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer){
+CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNum){
     char* buffer = malloc(sizeof(char)*maxStrLength);
     PatientCase* newPatient = NULL;
     Node* newNode = NULL;
 
+    printf("%d\n\n", fileExplorerPointer);
     while(getline(&buffer, &maxStrLength, patientRecordsFile) >= 0){
-        newPatient = getPatient(buffer, fileExplorer);
+        newPatient = getPatient(buffer, fileExplorer, fileExplorerPointer, dirNum);
         if(newPatient != NULL){
             if(strcmp(newPatient->type, "ENTRY")==0){
                 newNode = nodeInit(newPatient);
@@ -329,9 +235,6 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
                 hashPut(cmdManager->countryHashTable, strlen(newPatient->country), newPatient->country, cmdManager->bucketSize, newNode);
                 fileExplorer->successfulEntries+=1;
             }else if(cmdManager->patientList!=NULL && strcmp(newPatient->type, "EXIT")==0){
-                if(strcmp(newPatient->country, "Austria") == 0 && strcmp(newPatient->virus, "HPV")==0){
-                    fprintf(stdout,"bla");
-                }
                 if(searchNodeForRecordID_ExitDateUpdate(cmdManager->patientList, newPatient->recordID, newPatient->exitDate)) {
                     nodeItemDeallock(newPatient);
                     fileExplorer->successfulEntries += 1;
@@ -349,7 +252,6 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
     return cmdManager;
 }
 
-
 bool dateInputValidation(Date* entryDate, Date* exitDate){
     if (entryDate->day == exitDate->day && entryDate->month == exitDate->month && entryDate->year < exitDate->year)
         return true;
@@ -364,6 +266,5 @@ bool dateInputValidation(Date* entryDate, Date* exitDate){
 
 void deallockFileExplorer(FileExplorer *fileExplorer){
     free(fileExplorer->country);
-    free(fileExplorer->date);
     free(fileExplorer);
 }

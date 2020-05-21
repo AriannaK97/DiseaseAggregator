@@ -1,7 +1,7 @@
-OBJS	=	main.o	list_lib.o	data_io.o   hashTable.o redBlackTree.o  command_lib.o   binaryMaxHeap.o
-SOURCE	=	src/main.c	src/list_lib.c	src/data_io.c   src/hashTable.c src/redBlackTree.c  src/command_lib.c   src/binaryMaxHeap.c
-HEADER	=	header/list_lib.h	header/data_io.h   header/hashTable.h header/redBlackTree.h header/structs.h    header/command_lib.h    header/binaryMaxHeap.h
-OUT	=   diseaseAggregator
+OBJS	=	main.o	list_lib.o	data_io.o   hashTable.o redBlackTree.o  command_lib.o   binaryMaxHeap.o diseaseAggregator.o
+SOURCE	=	src/main.c	src/list_lib.c	src/data_io.c   src/hashTable.c src/redBlackTree.c  src/command_lib.c   src/binaryMaxHeap.c src/diseaseAggregator.c
+HEADER	=	header/list_lib.h	header/data_io.h   header/hashTable.h header/redBlackTree.h header/structs.h    header/command_lib.h    header/binaryMaxHeap.h  header/diseaseAggregator.h
+OUT	=	diseaseMonitor
 CC	=	gcc
 FLAGS   =	-Wall	-g	-c	-std=c99
 
@@ -28,6 +28,9 @@ command_lib.o:    src/command_lib.c
 
 binaryMaxHeap.o:    src/binaryMaxHeap.c
 	$(CC)	$(FLAGS)	src/binaryMaxHeap.c
+
+diseaseAggregator.o:    src/diseaseAggregator.c
+	$(CC)	$(FLAGS)	src/diseaseAggregator.c
 
 clean:
 	rm	-f	$(OBJS)	$(OUT)

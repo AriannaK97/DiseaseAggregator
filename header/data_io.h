@@ -22,9 +22,7 @@ enum defAttribute{
     LINE_BUFFER_SIZE,
 };
 
-CmdManager* readDirectoryFiles_And_PopulateAggregator(InputArguments* arguments, CmdManager* cmdManager);
-
-PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer);
+PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNUm);
 
 FILE* openFile(char *inputFile);
 
@@ -32,17 +30,15 @@ InputArguments* getInputArgs(int argc, char** argv);
 
 int getMaxFromFile(FILE* patientRecordsFile, int returnVal);
 
-bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize);
+bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize, int fileExplorerPointer, int dirNum);
 
-CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer);
+CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNUm);
 
 bool dateInputValidation(Date* entryDate, Date* exitDate);
 
 bool setDate(PatientCase *patient, char *buffer);
 
-CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize);
+CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize, int fileArraySize);
 
 void deallockFileExplorer(FileExplorer *fileExplorer);
-
-int compare (const void * a, const void * b);
 #endif //DISEASEMONITOR_DATA_IO_H

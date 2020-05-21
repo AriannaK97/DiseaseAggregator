@@ -18,6 +18,7 @@ List* linkedListInit(Node* node){
     List* newList = (struct List*)malloc(sizeof(List));
     newList->head = node;
     newList->tail = node;
+    newList->itemCount = 0;
     return newList;
 }
 
@@ -26,9 +27,11 @@ void push(Node* listNode, List* linkedList){
     if(linkedList->head == NULL){
         linkedList->head = listNode;
         linkedList->tail = listNode;
+        linkedList->itemCount += 1;
     }else{
         linkedList->tail->next = listNode;
         linkedList->tail = listNode;
+        linkedList->itemCount += 1;
     }
 }
 

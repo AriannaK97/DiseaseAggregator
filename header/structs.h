@@ -5,10 +5,13 @@
 #ifndef DISEASEMONITOR_STRUCTS_H
 #define DISEASEMONITOR_STRUCTS_H
 
+
+
 typedef struct BucketEntry BucketEntry;
 typedef struct Bucket Bucket;
 typedef struct HashTable HashTable;
 typedef struct HashElement HashElement;
+typedef struct FileExplorer FileExplorer;
 
 typedef struct Date{
     int day;
@@ -28,14 +31,6 @@ typedef struct PatientCase{
     struct Date* exitDate;
 }PatientCase;
 
-typedef struct FileExplorer{
-    char* country;  /*current directory*/
-    char* date;     /*current filename*/
-    int failedEntries;
-    int successfulEntries;
-    char** fileNameArray;
-}FileExplorer;
-
 typedef struct Node{
     void* item;
     struct Node* next;
@@ -44,21 +39,23 @@ typedef struct Node{
 typedef struct List{
     struct Node* head;
     struct Node* tail;
+    int itemCount;
 }List;
 
 typedef struct CmdManager{
     struct List* patientList;
     struct HashTable* diseaseHashTable;
     struct HashTable* countryHashTable;
-    FileExplorer* fileExplorer;
+    FileExplorer* directoryExplorer;
     size_t bucketSize;
 }CmdManager;
-
 
 typedef struct InputArguments{
     size_t bufferSize;
     int numWorkers;
     char *input_dir;
 }InputArguments;
+
+
 
 #endif //DISEASEMONITOR_STRUCTS_H

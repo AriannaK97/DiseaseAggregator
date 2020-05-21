@@ -1,38 +1,35 @@
 #include <stdio.h>
+#include <sys/stat.h>
 #include "../header/data_io.h"
 #include "../header/command_lib.h"
+#include "../header/diseaseAggregator.h"
 
-int main(int argc, char** argv) {
-
-
+int main(int argc, char** argv){
+    int aggregatorServer, worker, i;
+    ssize_t nread;
+    Message msg;
+    char fifoName[100];
+    Node* currentNode;
+    DirListItem* item;
+    CmdManager* cmdManager;
 /*****************************************************************************
  *                       Handling command line arguments                     *
  *****************************************************************************/
+
     InputArguments* arguments = getInputArgs(argc, argv);
-/*****************************************************************************
- *                       Handling input files                                *
- *****************************************************************************/
-    //FILE *patientRecordsFile;
-    CmdManager* cmdManager;
-    cmdManager = initializeStructures(DISEASE_HT_Entries_NUM, COUNTRY_HT_Entries_NUM, BUCKET_SIZE);
-    cmdManager = readDirectoryFiles_And_PopulateAggregator(arguments, cmdManager);
+    AggregatorManager* aggregatorManager = readDirectoryFiles(arguments);
+    printAggregatorManagerDirectoryDistributor(aggregatorManager, arguments->numWorkers);
+    fprintf(stdout,"Server has started...\n");
 
-    free(arguments->input_dir);
-    free(arguments);
+    for (int i = 0; i < arguments->numWorkers; ++i) {
+        currentNode = (Node*)aggregatorManager->directoryDistributor[i]->head;
+        while (currentNode != NULL){
+            cmdManager = read_directory_list(aggregatorManager->directoryDistributor[i]);
+            currentNode = currentNode->next;
+        }
+        break;
+    }
 
-    /**
-     * Uncomment the line below to see all the inserted patients in the list
-     * */
-
-    //printList(cmdManager->patientList);
-
-    /**
-     * Uncomment the two lines below to see the hashtable contents
-     * */
-    //applyOperationOnHashTable(cmdManager->diseaseHashTable, PRINT);
-    //applyOperationOnHashTable(cmdManager->countryHashTable, PRINT);
-
-    commandServer(cmdManager);
-
+    //if(mkfifo(SERVER_FIFO_NAME, PERM_FILE))
     return 0;
 }

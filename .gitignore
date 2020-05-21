@@ -4,3 +4,4 @@ input_dir
 CMakeLists.txt
 LargeCountriesFile
 *.o
+aux
