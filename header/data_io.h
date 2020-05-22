@@ -26,7 +26,7 @@ PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplor
 
 FILE* openFile(char *inputFile);
 
-InputArguments* getInputArgs(int argc, char** argv);
+MonitorInputArguments* getMonitorInputArgs(int argc, char** argv);
 
 int getMaxFromFile(FILE* patientRecordsFile, int returnVal);
 
@@ -41,4 +41,9 @@ bool setDate(PatientCase *patient, char *buffer);
 CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize, int fileArraySize);
 
 void deallockFileExplorer(FileExplorer *fileExplorer);
+
+CmdManager* read_directory_list(List* fileList);
+
+int compare (const void * a, const void * b);
+
 #endif //DISEASEMONITOR_DATA_IO_H

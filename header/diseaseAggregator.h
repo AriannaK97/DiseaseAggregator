@@ -15,9 +15,6 @@
 #include <errno.h>
 #include <stdio.h>
 
-#define PERM_FILE 0666
-#define SERVER_FIFO_NAME "aggregator_server"
-
 typedef struct Message{
     pid_t m_clientpid;
     char sm_data[200];
@@ -45,11 +42,19 @@ typedef struct Aggregatormanager{
     List** directoryDistributor;
 }AggregatorManager;
 
-AggregatorManager* readDirectoryFiles(InputArguments* arguments);
+typedef struct AggregatorInputArguments{
+    size_t bufferSize;
+    int numWorkers;
+    char *input_dir;
+}AggregatorInputArguments;
 
-int compare (const void * a, const void * b);
+AggregatorManager* readDirectoryFiles(AggregatorInputArguments* arguments);
 
-CmdManager* read_directory_list(List* fileList);
+int countFilesInDirectory(DIR *FD);
+
+FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize);
+
+AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv);
 
 void printAggregatorManagerDirectoryDistributor(AggregatorManager* aggregatorManager, int numOfWorkers);
 

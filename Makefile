@@ -1,39 +1,48 @@
-OBJS	=	main.o	list_lib.o	data_io.o   hashTable.o redBlackTree.o  command_lib.o   binaryMaxHeap.o diseaseAggregator.o
-SOURCE	=	src/main.c	src/list_lib.c	src/data_io.c   src/hashTable.c src/redBlackTree.c  src/command_lib.c   src/binaryMaxHeap.c src/diseaseAggregator.c
-HEADER	=	header/list_lib.h	header/data_io.h   header/hashTable.h header/redBlackTree.h header/structs.h    header/command_lib.h    header/binaryMaxHeap.h  header/diseaseAggregator.h
-OUT	=	diseaseMonitor
 CC	=	gcc
 FLAGS   =	-Wall	-g	-c	-std=c99
 
-$(OUT):	$(OBJS)
-	$(CC)	-g	$(OBJS)	-o	$@
+all: diseaseAggregator_server diseaseMonitor_client
 
-main.o: src/main.c
-	$(CC)	$(FLAGS)	src/main.c
+diseaseAggregator_server:   main.o  diseaseAggregator.o server.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o
+	$(CC)   -o diseaseAggregator_server main.o diseaseAggregator.o server.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o
 
-list_lib.o:   src/list_lib.c
-	$(CC)	$(FLAGS)	src/list_lib.c
+diseaseMonitor_client:  diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o  binaryMaxHeap.o	diseaseAggregator.o
+	$(CC)   -o	diseaseMonitor_client	diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o  binaryMaxHeap.o	diseaseAggregator.o
 
-data_io.o:    src/data_io.c
-	$(CC)	$(FLAGS)	src/data_io.c
+main.o: src/server/main.c
+	$(CC)	$(FLAGS)	src/server/main.c
 
-hashTable.o:    src/hashTable.c
-	$(CC)	$(FLAGS)	src/hashTable.c
+list_lib.o:   src/client/list_lib.c
+	$(CC)	$(FLAGS)	src/client/list_lib.c
 
-redBlackTree.o:    src/redBlackTree.c
-	$(CC)	$(FLAGS)	src/redBlackTree.c
+data_io.o:    src/client/data_io.c
+	$(CC)	$(FLAGS)	src/client/data_io.c
 
-command_lib.o:    src/command_lib.c
-	$(CC)	$(FLAGS)	src/command_lib.c
+hashTable.o:    src/client/hashTable.c
+	$(CC)	$(FLAGS)	src/client/hashTable.c
 
-binaryMaxHeap.o:    src/binaryMaxHeap.c
-	$(CC)	$(FLAGS)	src/binaryMaxHeap.c
+redBlackTree.o:    src/client/redBlackTree.c
+	$(CC)	$(FLAGS)	src/client/redBlackTree.c
 
-diseaseAggregator.o:    src/diseaseAggregator.c
-	$(CC)	$(FLAGS)	src/diseaseAggregator.c
+command_lib.o:    src/client/command_lib.c
+	$(CC)	$(FLAGS)	src/client/command_lib.c
+
+binaryMaxHeap.o:    src/client/binaryMaxHeap.c
+	$(CC)	$(FLAGS)	src/client/binaryMaxHeap.c
+
+diseaseAggregator.o:    src/server/diseaseAggregator.c
+	$(CC)	$(FLAGS)	src/server/diseaseAggregator.c
+
+server.o:    src/server/server.c
+	$(CC)	$(FLAGS)	src/server/server.c
+
+diseaseMonitorApp.o: src/client/diseaseMonitorApp.c
+	$(CC)	$(FLAGS)	src/client/diseaseMonitorApp.c
 
 clean:
-	rm	-f	$(OBJS)	$(OUT)
+	rm	-rf *.o diseaseMonitor_client diseaseAggregator_server
+	rm -rf worker*
+	rm -rf aggregator_server
 
 count:
 	wc	$(SOURCE)	$(HEADER)

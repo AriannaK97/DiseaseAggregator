@@ -2,12 +2,12 @@
 // Created by AriannaK97 on 12/3/20.
 //
 #define  _GNU_SOURCE
-#include "../header/command_lib.h"
+#include "../../header/command_lib.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "../header/structs.h"
-#include "../header/hashTable.h"
+#include "../../header/structs.h"
+#include "../../header/hashTable.h"
 
 /**
  * Prints every country along with its Worker's processID. It is usefull in case we want to add new files

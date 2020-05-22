@@ -2,7 +2,7 @@
 // Created by AriannaK97 on 12/3/20.
 //
 
-#include "../header/hashTable.h"
+#include "../../header/hashTable.h"
 
 
 unsigned long hash(unsigned long x){

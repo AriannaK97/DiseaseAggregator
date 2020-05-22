@@ -50,12 +50,11 @@ typedef struct CmdManager{
     size_t bucketSize;
 }CmdManager;
 
-typedef struct InputArguments{
+typedef struct MonitorInputArguments{
+    size_t bucketSize;
+    int diseaseHashtableNumOfEntries;
+    int countryHashTableNumOfEntries;
     size_t bufferSize;
-    int numWorkers;
-    char *input_dir;
-}InputArguments;
-
-
+}MonitorInputArguments;
 
 #endif //DISEASEMONITOR_STRUCTS_H

@@ -4,8 +4,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "../header/binaryMaxHeap.h"
-#include "../header/hashTable.h"
+#include "../../header/binaryMaxHeap.h"
+#include "../../header/hashTable.h"
 
 Heap* createHeap(){
     Heap* heapTree = malloc(sizeof(Heap));

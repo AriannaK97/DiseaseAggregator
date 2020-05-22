@@ -2,10 +2,10 @@
 // Created by linuxuser on 21/5/20.
 //
 
-#include "../header/diseaseAggregator.h"
+#include "../../header/diseaseAggregator.h"
 
 
-AggregatorManager* readDirectoryFiles(InputArguments* arguments){
+AggregatorManager* readDirectoryFiles(AggregatorInputArguments* arguments){
     DIR* FD;
     DIR* SubFD;
     struct dirent* in_dir;
@@ -153,64 +153,39 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
     return fileArray;
 }
 
-CmdManager* read_directory_list(List* fileList){
+AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv){
 
-    Node* node = fileList->head;
-    FILE* entry_file;
-    DIR* FD;
-    DirListItem* item;
-    FileItem* fileArray;
-    struct dirent* in_file;
-    int numOfFileInSubDirectory = 0;
-    int arraySize;
-    int dirNum = 0;
-    char *subDirPath = malloc(DIR_LEN*sizeof(char));
-    CmdManager* cmdManager;
-    cmdManager = initializeStructures(DISEASE_HT_Entries_NUM, COUNTRY_HT_Entries_NUM, BUCKET_SIZE, fileList->itemCount);
-
-    while (node != NULL) {
-        item = (DirListItem*)node->item;
-        /* Scanning the in directory */
-        if (NULL == (FD = opendir(item->dirPath))) {
-            fprintf(stderr, "Error : Failed to open input directory - %s\n", strerror(errno));
+    AggregatorInputArguments* arguments =  malloc(sizeof(struct AggregatorInputArguments));
+    int numOfArgs = 0;
+    if(argc != 7){
+        fprintf(stderr, "Invalid number of arguments\nExit...\n");
+        exit(1);
+    }
+    for (int i = 1; i < argc; i += 2) {
+        if (strcmp(argv[i], "-i") == 0) {
+            arguments->input_dir = malloc(sizeof(char)*254);
+            strcpy(arguments->input_dir, argv[i + 1]);
+            numOfArgs += 2;
+        } else if (strcmp(argv[i], "-w") == 0) {
+            arguments->numWorkers = atoi(argv[i + 1]);
+            numOfArgs += 2;
+        } else if (strcmp(argv[i], "-b") == 0) {
+            if(atoi(argv[i + 1]) >= BUFFER_SIZE){
+                arguments->bufferSize = atoi(argv[i + 1]);
+                numOfArgs += 2;
+            }else{
+                fprintf(stderr, "The BUCKET_SIZE you have provided is invalid! Provide a BUCKET_SIZE >= %d\n", BUCKET_SIZE);
+                scanf("%ld" ,&arguments->bufferSize);
+            }
+        } else {
+            fprintf(stderr, "Unknown option %s\n", argv[i]);
             exit(1);
         }
-
-        arraySize = countFilesInDirectory(FD);
-        fileArray = createFileArray(FD, item, arraySize);
-
-        strcpy(cmdManager->directoryExplorer->country, item->dirName);
-        memcpy(&cmdManager->directoryExplorer->fileArray[dirNum], &fileArray, sizeof(FileItem) * arraySize);
-
-        for (int i = 0; i < arraySize; i++) {
-
-            entry_file = fopen(fileArray[i].filePath, "r");
-            if (entry_file == NULL) {
-                fprintf(stderr, "Error : Failed to open entry file %s - %s\n", subDirPath, strerror(errno));
-                exit(1);
-            }
-
-            cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
-                                         cmdManager->directoryExplorer, i, dirNum);
-            fclose(entry_file);
-            numOfFileInSubDirectory++;
-        }
-        dirNum++;
-        node = node->next;
     }
-    return cmdManager;
+    if (arguments->input_dir == NULL) {
+        fprintf(stdout, "Default file patientRecordsFile loaded...\n");
+    }
+
+    return arguments;
 }
 
-
-int compare (const void * a, const void * b){
-
-    int ret;
-
-    FileItem *ia = (FileItem *)a; // casting pointer types
-    FileItem *ib = (FileItem *)b;
-
-    ret = compare_dates(ia->dateFile, ib->dateFile);
-
-    return ret;
-
-}
