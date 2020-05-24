@@ -12,16 +12,11 @@
 
 
 int main(int argc, char** argv){
-    int aggregatorServer, worker;
-    ssize_t nread;
     char *fifoName;
     Node* currentNode;
     DirListItem* item;
-    int fd_client_r = -1;
     int fd_client_w = -1;
-    int fd_server;
     int status;
-    bool sendListSize;
     char *listSize;
     time_t when;
     pid_t pid, endID;
@@ -72,14 +67,14 @@ int main(int argc, char** argv){
             }
         }
 
-        if ( (fd_client_r=open(fifoName, O_WRONLY)) < 0){
+        if ( (fd_client_w=open(fifoName, O_WRONLY)) < 0){
             perror("fifo open error");
             exit(1);
         }
 
         listSize = (char*)malloc(sizeof(char) * DATA_SPACE);
         sprintf(listSize, "%d", aggregatorServerManager->directoryDistributor[i]->itemCount);
-        if (write(fd_client_r, listSize, arguments->bufferSize) == -1){
+        if (write(fd_client_w, listSize, arguments->bufferSize) == -1){
             perror("Error in Writing");
             exit(2);
         }
@@ -87,14 +82,14 @@ int main(int argc, char** argv){
         currentNode = (Node*)aggregatorServerManager->directoryDistributor[i]->head;
         while (currentNode != NULL){
             item = currentNode->item;
-            if (write(fd_client_r, item->dirName, arguments->bufferSize) == -1){
+            if (write(fd_client_w, item->dirName, arguments->bufferSize) == -1){
                 perror("Error in Writing");
                 exit(2);
             }
             currentNode = currentNode->next;
         }
 
-        close(fd_client_r);
+        close(fd_client_w);
 
         aggregatorServerManager->workersArray[i].serverFileName = malloc(sizeof(fifoName));
 /*        strcpy(serverInfo->workersArray[i].serverFileName, fifoName);*/

@@ -5,8 +5,8 @@
 #ifndef DISEASEMONITOR_BINARYMAXHEAP_H
 #define DISEASEMONITOR_BINARYMAXHEAP_H
 
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAXIMUM(x, y) (((x) > (y)) ? (x) : (y))
+#define MINIMUM(x, y) (((x) < (y)) ? (x) : (y))
 
 #include <stdbool.h>
 #include <stdlib.h>

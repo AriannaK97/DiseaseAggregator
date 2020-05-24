@@ -256,10 +256,8 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
     FILE* entry_file;
     DIR* FD;
     DirListItem* item;
-    Node* currentNode;
     FileItem* fileArray;
     FileExplorer* fileExplorer;
-    struct dirent* in_file;
     int numOfFileInSubDirectory = 0;
     int arraySize;
     int dirNum = 0;

@@ -19,7 +19,6 @@ int main(int argc, char** argv) {
     WorkerInfo workerInfo;
     char *fifoName;
     int fd_client_r = -1;
-    int fd_client_w = -1;
     char* message;
     char* dataLengthStr;
     int dataLength;
@@ -110,7 +109,7 @@ int main(int argc, char** argv) {
     //applyOperationOnHashTable(cmdManager->diseaseHashTable, PRINT);
     //applyOperationOnHashTable(cmdManager->countryHashTable, PRINT);
 
-    //commandServer(cmdManager);
+    commandServer(cmdManager);
     fprintf(stdout, "exiting child\n");
     close(fd_client_r);
     exit(0);

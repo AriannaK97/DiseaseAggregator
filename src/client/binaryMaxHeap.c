@@ -32,7 +32,7 @@ int minDepth(HeapNode *root){
     int leftDepth = minDepth(root->left);
     int rightDepth = minDepth(root->right);
 
-    return MIN(leftDepth, rightDepth)+1;
+    return MINIMUM(leftDepth, rightDepth) + 1;
 }
 
 int maxDepth(HeapNode* root){
@@ -42,7 +42,7 @@ int maxDepth(HeapNode* root){
     int leftDepth =  maxDepth((HeapNode*)root->left);
     int rightDepth = maxDepth((HeapNode*)root->right);
 
-    return MAX(leftDepth, rightDepth)+1;
+    return MAXIMUM(leftDepth, rightDepth) + 1;
 }
 
 Heap* getSubHeapTree(Heap* primalTree, HeapNode* newRoot){
