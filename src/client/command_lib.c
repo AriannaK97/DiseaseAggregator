@@ -281,7 +281,7 @@ void exitMonitor(CmdManager* manager){
     //fprintf(stdout, "Destroy patient list...\n");
     listMemoryDeallock(manager->patientList);
 
-    deallockFileExplorer(manager->directoryExplorer);
+    //deallockFileExplorer(manager->directoryExplorer);
     free(manager);
 
     exit(0);

@@ -3,8 +3,8 @@ FLAGS   =	-Wall	-g	-c	-std=c99
 
 all: diseaseAggregator_server diseaseMonitor_client
 
-diseaseAggregator_server:   main.o  diseaseAggregator.o server.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o
-	$(CC)   -o diseaseAggregator_server main.o diseaseAggregator.o server.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o
+diseaseAggregator_server:   main.o  diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o
+	$(CC)   -o diseaseAggregator_server main.o diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o
 
 diseaseMonitor_client:  diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o  binaryMaxHeap.o	diseaseAggregator.o
 	$(CC)   -o	diseaseMonitor_client	diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o  binaryMaxHeap.o	diseaseAggregator.o

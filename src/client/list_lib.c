@@ -155,6 +155,7 @@ bool searchListForRecordID(List* linkedList, char* key){
  * */
 void printList(List* patientList){
     PatientCase* newPatient;
+    printf("this is patient list\n");
     Node* newNode = patientList->head;
     while (newNode != NULL && newNode->item != NULL){
         newPatient = (PatientCase*)newNode->item;

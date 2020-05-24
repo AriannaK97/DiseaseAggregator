@@ -46,8 +46,9 @@ typedef struct CmdManager{
     struct List* patientList;
     struct HashTable* diseaseHashTable;
     struct HashTable* countryHashTable;
-    FileExplorer* directoryExplorer;
+    List* directoryList;
     size_t bucketSize;
+    char *input_dir;
 }CmdManager;
 
 typedef struct MonitorInputArguments{
@@ -55,6 +56,7 @@ typedef struct MonitorInputArguments{
     int diseaseHashtableNumOfEntries;
     int countryHashTableNumOfEntries;
     size_t bufferSize;
+    char *input_dir;
 }MonitorInputArguments;
 
 #endif //DISEASEMONITOR_STRUCTS_H

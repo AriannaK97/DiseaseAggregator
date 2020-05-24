@@ -38,11 +38,11 @@ bool dateInputValidation(Date* entryDate, Date* exitDate);
 
 bool setDate(PatientCase *patient, char *buffer);
 
-CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize, int fileArraySize);
+CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments);
 
 void deallockFileExplorer(FileExplorer *fileExplorer);
 
-CmdManager* read_directory_list(List* fileList);
+CmdManager* read_directory_list(CmdManager* cmdManager);
 
 int compare (const void * a, const void * b);
 

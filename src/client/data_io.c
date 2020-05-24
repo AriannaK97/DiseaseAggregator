@@ -9,6 +9,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 FILE* openFile(char *inputFile){
     FILE *patientRecordsFile;
@@ -28,8 +29,8 @@ FILE* openFile(char *inputFile){
 
 MonitorInputArguments* getMonitorInputArgs(int argc, char** argv){
 
-    MonitorInputArguments* arguments =  malloc(sizeof(struct AggregatorInputArguments));
-    if(argc != 5){
+    MonitorInputArguments* arguments =  (struct MonitorInputArguments*)malloc(sizeof(struct MonitorInputArguments));
+    if(argc != 6){
         fprintf(stderr, "Invalid number of arguments\nExit...\n");
         exit(1);
     }
@@ -43,6 +44,9 @@ MonitorInputArguments* getMonitorInputArgs(int argc, char** argv){
 
         } else if (i == 4) {
             arguments->bucketSize = atoi(argv[i]);
+        } else if (i == 5){
+            arguments->input_dir = (char*)malloc(sizeof(char)*DIR_LEN);
+            strcpy(arguments->input_dir, argv[i]);
         }
     }
 
@@ -179,24 +183,16 @@ bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, Ha
     return true;
 }
 
-CmdManager* initializeStructures(int diseaseHashtableNumOfEntries, int countryHashTableNumOfEntries, size_t bucketSize, int fileArraySize){
+CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
     CmdManager* cmdManager = malloc(sizeof(struct CmdManager));
-    cmdManager->directoryExplorer = malloc(sizeof(struct FileExplorer));
-    List* patientList = NULL;
 
-    HashTable* diseaseHashTable = hashCreate(diseaseHashtableNumOfEntries);
-    HashTable* countryHashTable = hashCreate(countryHashTableNumOfEntries);
-    /**
-     * Put the needed structures to command manager
-     **/
-    cmdManager->patientList = patientList;
-    cmdManager->countryHashTable = countryHashTable;
-    cmdManager->diseaseHashTable = diseaseHashTable;
-    cmdManager->bucketSize = bucketSize;
-    cmdManager->directoryExplorer->country = malloc(sizeof(char) * DIR_LEN);
-    cmdManager->directoryExplorer->successfulEntries = 0;
-    cmdManager->directoryExplorer->failedEntries = 0;
-    cmdManager->directoryExplorer->fileArray = malloc(sizeof(FileItem*) * fileArraySize);
+    cmdManager->patientList = NULL;
+    cmdManager->input_dir = (char*)malloc(sizeof(char)*DIR_LEN);
+    strcpy(cmdManager->input_dir, monitorInputArguments->input_dir);
+    cmdManager->countryHashTable = hashCreate(monitorInputArguments->countryHashTableNumOfEntries);
+    cmdManager->diseaseHashTable = hashCreate(monitorInputArguments->diseaseHashtableNumOfEntries);
+    cmdManager->bucketSize = monitorInputArguments->bucketSize;
+    cmdManager->directoryList = NULL;
 
     return cmdManager;
 }
@@ -206,7 +202,6 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
     PatientCase* newPatient = NULL;
     Node* newNode = NULL;
 
-    printf("%d\n\n", fileExplorerPointer);
     while(getline(&buffer, &maxStrLength, patientRecordsFile) >= 0){
         newPatient = getPatient(buffer, fileExplorer, fileExplorerPointer, dirNum);
         if(newPatient != NULL){
@@ -227,14 +222,14 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
                 }else{
                     nodeItemDeallock(newPatient);
                     fileExplorer->failedEntries+=1;
-                    fprintf(stderr, "Error\n");
+                    //fprintf(stderr, "Error\n");
                 }
             }
         }
     }
 
     free(buffer);
-
+    //printList(cmdManager->patientList);
     return cmdManager;
 }
 
@@ -255,23 +250,24 @@ void deallockFileExplorer(FileExplorer *fileExplorer){
     free(fileExplorer);
 }
 
-CmdManager* read_directory_list(List* fileList){
+CmdManager* read_directory_list(CmdManager* cmdManager){
 
-    Node* node = fileList->head;
+    Node* node = cmdManager->directoryList->head;
     FILE* entry_file;
     DIR* FD;
     DirListItem* item;
+    Node* currentNode;
     FileItem* fileArray;
+    FileExplorer* fileExplorer;
     struct dirent* in_file;
     int numOfFileInSubDirectory = 0;
     int arraySize;
     int dirNum = 0;
-    char *subDirPath = malloc(DIR_LEN*sizeof(char));
-    CmdManager* cmdManager;
-    cmdManager = initializeStructures(DISEASE_HT_Entries_NUM, COUNTRY_HT_Entries_NUM, BUCKET_SIZE, fileList->itemCount);
 
     while (node != NULL) {
+        fileExplorer = malloc(sizeof(FileExplorer));
         item = (DirListItem*)node->item;
+
         /* Scanning the in directory */
         if (NULL == (FD = opendir(item->dirPath))) {
             fprintf(stderr, "Error : Failed to open input directory - %s\n", strerror(errno));
@@ -279,27 +275,36 @@ CmdManager* read_directory_list(List* fileList){
         }
 
         arraySize = countFilesInDirectory(FD);
+        fileExplorer->country = malloc(sizeof(char) * DIR_LEN);
+        fileExplorer->successfulEntries = 0;
+        fileExplorer->failedEntries = 0;
+        fileExplorer->fileArray = malloc(sizeof(FileItem) * arraySize);
         fileArray = createFileArray(FD, item, arraySize);
+        strcpy(fileExplorer->country, item->dirName);
+        memcpy(&fileExplorer->fileArray[dirNum], &fileArray, sizeof(FileItem) * arraySize);
 
-        strcpy(cmdManager->directoryExplorer->country, item->dirName);
-        memcpy(&cmdManager->directoryExplorer->fileArray[dirNum], &fileArray, sizeof(FileItem) * arraySize);
-
-        for (int i = 0; i < arraySize; i++) {
-
+        for (int i = 0; i < arraySize-1; i++) {
             entry_file = fopen(fileArray[i].filePath, "r");
             if (entry_file == NULL) {
-                fprintf(stderr, "Error : Failed to open entry file %s - %s\n", subDirPath, strerror(errno));
+                fprintf(stderr, "Error : Failed to open entry file %s - %s\n", fileArray[i].filePath, strerror(errno));
                 exit(1);
             }
 
             cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
-                                         cmdManager->directoryExplorer, i, dirNum);
+                                         fileExplorer, i, dirNum);
             fclose(entry_file);
             numOfFileInSubDirectory++;
+            printf("list items:%d\n", cmdManager->patientList->itemCount);
         }
         dirNum++;
         node = node->next;
+        printf("kjnweofnwnwol");
     }
+/*    printf("kjnweofnwnwol");
+    if(cmdManager->patientList->itemCount != 0)
+        printf("%d\n\n\n\n", cmdManager->patientList->itemCount);
+    printList(cmdManager->patientList);*/
+
     return cmdManager;
 }
 

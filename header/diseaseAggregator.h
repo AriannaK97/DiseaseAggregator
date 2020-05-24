@@ -15,14 +15,19 @@
 #include <errno.h>
 #include <stdio.h>
 
+#define PERM_FILE 0666
+#define SERVER_FIFO_NAME "aggregator_server"
+#define READ 0
+#define WRITE 1
+
 typedef struct Message{
     pid_t m_clientpid;
     char sm_data[200];
 }Message;
 
 typedef struct DirListItem{
-    char dirName[256];
-    char dirPath[256];
+    char *dirName;
+    char *dirPath;
 }DirListItem;
 
 typedef struct FileItem{
@@ -38,17 +43,32 @@ typedef struct FileExplorer{
     FileItem** fileArray;
 }FileExplorer;
 
-typedef struct Aggregatormanager{
-    List** directoryDistributor;
-}AggregatorManager;
-
 typedef struct AggregatorInputArguments{
     size_t bufferSize;
     int numWorkers;
     char *input_dir;
 }AggregatorInputArguments;
 
-AggregatorManager* readDirectoryFiles(AggregatorInputArguments* arguments);
+typedef struct WorkerInfo{
+    pid_t workerPid;
+    char *serverFileName;
+}WorkerInfo;
+
+typedef struct AggregatorServerManager{
+    List** directoryDistributor;
+    int numOfWorkers;
+    WorkerInfo *workersArray;
+}AggregatorServerManager;
+
+void freeAggregatorManager(AggregatorServerManager *aggregatorManager);
+
+void freeAggregatorInputArguments(AggregatorInputArguments *aggregatorInputArguments);
+
+void freeWorkerInfo(WorkerInfo workerInfo);
+
+bool make_fifo_name(pid_t workerNum, char *name, size_t name_max);
+
+AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments);
 
 int countFilesInDirectory(DIR *FD);
 
@@ -56,6 +76,8 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize);
 
 AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv);
 
-void printAggregatorManagerDirectoryDistributor(AggregatorManager* aggregatorManager, int numOfWorkers);
+void printAggregatorManagerDirectoryDistributor(AggregatorServerManager* aggregatorManager, int numOfWorkers);
+
+void nodeDirListItemDeallock(DirListItem* dirListItem);
 
 #endif //DISEASEAGGREGATOR_DISEASEAGGREGATOR_H

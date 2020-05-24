@@ -5,14 +5,13 @@
 #include "../../header/diseaseAggregator.h"
 
 
-AggregatorManager* readDirectoryFiles(AggregatorInputArguments* arguments){
+AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments){
     DIR* FD;
     DIR* SubFD;
     struct dirent* in_dir;
-    FILE *entry_file;
-    char *dirPath = malloc(DIR_LEN*sizeof(char));
-    char *subDirPath = malloc(DIR_LEN*sizeof(char));
-    AggregatorManager* aggregatorManager;
+    char *dirPath = (char*)malloc(DIR_LEN*sizeof(char));
+    char *subDirPath = (char*)malloc(DIR_LEN*sizeof(char));
+    AggregatorServerManager* aggregatorManager;
     int distributionPointer = 0;
     int listInitiatorFlag = 0;
     DirListItem* newNode = NULL;
@@ -30,9 +29,9 @@ AggregatorManager* readDirectoryFiles(AggregatorInputArguments* arguments){
     }
     rewinddir(FD);
 
-    aggregatorManager = malloc(sizeof(AggregatorManager));
+    aggregatorManager = (struct AggregatorServerManager*)malloc(sizeof(struct AggregatorServerManager));
     /*array of lists - each list holds the directories assigned to each worker*/
-    aggregatorManager->directoryDistributor = malloc(sizeof(struct List)*arguments->numWorkers);
+    aggregatorManager->directoryDistributor = (struct List**)malloc(sizeof(struct List*)*arguments->numWorkers);
 
     while ((in_dir = readdir(FD))){
         if(distributionPointer >= arguments->numWorkers){
@@ -52,7 +51,10 @@ AggregatorManager* readDirectoryFiles(AggregatorInputArguments* arguments){
             exit(1);
         }
 
-        newNode = malloc(sizeof(struct DirListItem));
+        newNode = (struct DirListItem*)malloc(sizeof(struct DirListItem));
+        newNode->dirPath = (char*)calloc(sizeof(char), DIR_LEN);
+        newNode->dirName = (char*)calloc(sizeof(char), DIR_LEN);
+
         strcpy(newNode->dirName, in_dir->d_name);
         strcpy(newNode->dirPath, subDirPath);
 
@@ -80,7 +82,7 @@ AggregatorManager* readDirectoryFiles(AggregatorInputArguments* arguments){
 }
 
 
-void printAggregatorManagerDirectoryDistributor(AggregatorManager* aggregatorManager, int numOfWorkers){
+void printAggregatorManagerDirectoryDistributor(AggregatorServerManager* aggregatorManager, int numOfWorkers){
     Node* currentNode;
     DirListItem* item;
     int counter;
@@ -94,8 +96,13 @@ void printAggregatorManagerDirectoryDistributor(AggregatorManager* aggregatorMan
             currentNode = currentNode->next;
             counter +=1;
         }
-        fprintf(stdout, "Worker serves: %d directories\n\n", counter);
+        fprintf(stdout, "worker%d serves: %d directories\n\n", i, counter);
     }
+}
+
+bool make_fifo_name(pid_t workerNum, char *name, size_t name_max){
+    sprintf(name, "worker%d", workerNum);
+    return true;
 }
 
 int countFilesInDirectory(DIR *FD){
@@ -117,7 +124,7 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
 
     struct dirent* in_file;
     char *subDirPath = malloc(DIR_LEN*sizeof(char));
-    FileItem* fileArray = malloc(sizeof(struct FileItem)*arraySize);
+    FileItem* fileArray = (struct FileItem*)malloc(sizeof(struct FileItem)*arraySize);
     int filePointer = 0;
     char* temp =  malloc(sizeof(char) * DATA_SPACE);
 
@@ -131,7 +138,7 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
         fileArray[filePointer].dateFile =  malloc(sizeof(struct Date));
 
         fileArray[filePointer].filePath = malloc(sizeof(char) * DIR_LEN);
-        fileArray[filePointer].fileName = malloc(sizeof(char) * DATA_SPACE);
+        fileArray[filePointer].fileName = malloc(sizeof(char) * DIR_LEN);
 
         strcpy(subDirPath, item->dirPath);
         strcat(subDirPath, "/");
@@ -144,6 +151,8 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
 
         strcpy(fileArray[filePointer].filePath, subDirPath);
         strcpy(fileArray[filePointer].fileName, in_file->d_name);
+
+        //fprintf(stdout, "%s \n", fileArray[filePointer].filePath);
 
         filePointer++;
     }
@@ -188,4 +197,38 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv){
 
     return arguments;
 }
+
+void nodeDirListItemDeallock(DirListItem* dirListItem){
+    free(dirListItem->dirPath);
+    free(dirListItem->dirName);
+    free(dirListItem);
+}
+
+void freeAggregatorManager(AggregatorServerManager *aggregatorManager){
+    Node* listNode;
+    for (int i = 0; i < aggregatorManager->numOfWorkers; ++i) {
+        listNode = aggregatorManager->directoryDistributor[i]->head;
+        while(listNode != NULL){
+            aggregatorManager->directoryDistributor[i]->head = aggregatorManager->directoryDistributor[i]->head->next;
+            nodeDirListItemDeallock(listNode->item);
+            free(listNode);
+            listNode = aggregatorManager->directoryDistributor[i]->head;
+        }
+        free(aggregatorManager->directoryDistributor[i]);
+        freeWorkerInfo(aggregatorManager->workersArray[i]);
+    }
+    free(aggregatorManager->directoryDistributor);
+    free(aggregatorManager->workersArray);
+    free(aggregatorManager);
+}
+
+void freeAggregatorInputArguments(AggregatorInputArguments *aggregatorInputArguments){
+    free(aggregatorInputArguments->input_dir);
+    free(aggregatorInputArguments);
+}
+
+void freeWorkerInfo(WorkerInfo workerInfo){
+    free(workerInfo.serverFileName);
+}
+
 
