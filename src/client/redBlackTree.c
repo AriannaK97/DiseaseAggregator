@@ -236,33 +236,47 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
 
     int counter = 0;
     Node* listNode;
+    char* age;
+
     counter += rbNodeCounter_BetweenDates(root->left, nil, operationCall, hashIterator);
     PatientCase* patient = root->listNodeEntry->item;
+
     if(operationCall == COUNT_ALL_BETWEEN_DATES || operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS){
+
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2))
             counter++;
-    } else if (operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE){
+
+    } else if (operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY
+            || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE){
+
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
             && strcmp(patient->virus, hashIterator->virus) == 0){
             counter++;
         }
+
     } else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT ){
         if(checkExitDateSpace(patient, hashIterator->date1, hashIterator->date2)
            && strcmp(patient->virus, hashIterator->virus) == 0){
             counter++;
         }
     }
-    else if(operationCall == GET_HEAP_NODES_VIRUS_DATES){
-        if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)){
+    else if(operationCall == GET_HEAP_NODES_AGE_RANGE_DATES){
+        if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
+        && strcmp(patient->country, hashIterator->country) == 0){
+
+            age = malloc(sizeof(char)*DATA_SPACE);
+            sprintf(age, "%d", patient->age);
             if(hashIterator->heapNodes == NULL){
-                HeapNode* newNode = createHeapNode(patient->country, 1);
+                HeapNode* newNode = createHeapNode(age, 1);
                 listNode = nodeInit(newNode);
                 hashIterator->heapNodes = linkedListInit(listNode);
             }else if(updateListVirusSum(hashIterator->heapNodes, patient->country) == false){
-                HeapNode* newNode = createHeapNode(patient->country, 1);
+                HeapNode* newNode = createHeapNode(age, 1);
                 listNode = nodeInit(newNode);
                 push(listNode, hashIterator->heapNodes);
             }
+            free(age);
+
         }
     }
     counter += rbNodeCounter_BetweenDates(root->right, nil, operationCall, hashIterator);
@@ -278,6 +292,7 @@ int rbNodeCounter(rbNode* root, rbNode* nil, int operationCall, HashElement* has
 
     int counter = 0;
     Node* listNode;
+    char* age = malloc(sizeof(char)*DATA_SPACE);
 
     counter += rbNodeCounter(root->left, nil, operationCall, hashIterator);
     PatientCase *patient = root->listNodeEntry->item;
@@ -286,26 +301,6 @@ int rbNodeCounter(rbNode* root, rbNode* nil, int operationCall, HashElement* has
             counter++;
     }else if (operationCall == COUNT_ALL) {
         counter++;
-    }else if(operationCall == GET_HEAP_NODES_VIRUS){
-        if(hashIterator->heapNodes == NULL){
-            HeapNode* newNode = createHeapNode(patient->country, 1);
-            listNode = nodeInit(newNode);
-            hashIterator->heapNodes = linkedListInit(listNode);
-        }else if(updateListVirusSum(hashIterator->heapNodes, patient->country) == false){
-            HeapNode* newNode = createHeapNode(patient->country, 1);
-            listNode = nodeInit(newNode);
-            push(listNode, hashIterator->heapNodes);
-        }
-    }else if(operationCall== GET_HEAP_NODES_COUNTRY){
-        if(hashIterator->heapNodes == NULL){
-            HeapNode* newNode = createHeapNode(patient->virus, 1);
-            listNode = nodeInit(newNode);
-            hashIterator->heapNodes = linkedListInit(listNode);
-        }else if(updateListVirusSum(hashIterator->heapNodes, patient->virus) == false){
-            HeapNode* newNode = createHeapNode(patient->virus, 1);
-            listNode = nodeInit(newNode);
-            push(listNode, hashIterator->heapNodes);
-        }
     }
     counter += rbNodeCounter(root->right, nil, operationCall, hashIterator);
 

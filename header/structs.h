@@ -46,6 +46,7 @@ typedef struct CmdManager{
     struct List* patientList;
     struct HashTable* diseaseHashTable;
     struct HashTable* countryHashTable;
+    struct WorkerInfo* workerInfo;
     List* directoryList;
     size_t bucketSize;
     char *input_dir;

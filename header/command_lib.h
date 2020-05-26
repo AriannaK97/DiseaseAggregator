@@ -5,10 +5,13 @@
 #ifndef DISEASEMONITOR_COMMAND_LIB_H
 #define DISEASEMONITOR_COMMAND_LIB_H
 
+#include "diseaseAggregator.h"
+
+
 typedef struct CmdManager CmdManager;
 typedef struct Date Date;
 
-void listCountries(CmdManager* manager);
+void listCountries(AggregatorServerManager* aggregatorServerManager);
 
 void diseaseFrequency(CmdManager* manager, char* virusName, Date* date1, Date* date2, char* country);
 

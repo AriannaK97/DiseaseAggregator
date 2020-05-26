@@ -8,13 +8,25 @@
 #include <string.h>
 #include "../../header/structs.h"
 #include "../../header/hashTable.h"
+#include "../../header/diseaseAggregator.h"
 
 /**
  * Prints every country along with its Worker's processID. It is usefull in case we want to add new files
  * for a certain country, and the user needs to find out which is the worker'r processID to send the necessary
  * signal to the certain worker.
  * */
-void listCountries(CmdManager* manager){
+void listCountries(AggregatorServerManager* aggregatorServerManager){
+    Node* currentNode = NULL;
+    DirListItem* item = NULL;
+    for (int i = 0; i < aggregatorServerManager->numOfWorkers; ++i) {
+        currentNode = (Node*)aggregatorServerManager->directoryDistributor[i]->head;
+        while (currentNode != NULL){
+            item = currentNode->item;
+            fprintf(stdout, "%s %d\n", item->dirName, aggregatorServerManager->workersArray[i].workerPid);
+            currentNode = currentNode->next;
+        }
+    }
+
 }
 
 /**
@@ -99,8 +111,6 @@ void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease ,Da
         iterator.date1 = date1;
         iterator.date2 = date2;
         while (hashIterateValues(&iterator, GET_HEAP_NODES_VIRUS_DATES) != NULL);
-    }else {
-        while (hashIterateValues(&iterator, GET_HEAP_NODES_VIRUS) != NULL);
     }
     if(iterator.heapNodes == NULL || iterator.heapNodes->head == NULL){
         //fprintf(stdout, "There are no countries with cases of %s\n~$:", disease);
@@ -312,7 +322,7 @@ void commandServer(CmdManager* manager){
 
             if (strcmp(command, "/listCountries") == 0) {
 
-                    listCountries(manager);
+                    //listCountries(manager);
 
             } else if (strcmp(command, "/diseaseFrequency") == 0) {
                 Date *date1;
@@ -429,6 +439,7 @@ void commandServer(CmdManager* manager){
         }
     }
 }
+
 
 
 /**

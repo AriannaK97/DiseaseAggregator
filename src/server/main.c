@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <time.h>
 #include "../../header/diseaseAggregator.h"
+#include "../../header/communication.h"
 
 
 int main(int argc, char** argv){
@@ -16,10 +17,10 @@ int main(int argc, char** argv){
     Node* currentNode;
     DirListItem* item;
     int fd_client_w = -1;
-    int status;
+    int fd_client_r = -1;
     char *listSize;
-    time_t when;
-    pid_t pid, endID;
+    char *message;
+    pid_t pid;
 /*****************************************************************************
  *                       Handling command line arguments                     *
  *****************************************************************************/
@@ -31,7 +32,7 @@ int main(int argc, char** argv){
  *****************************************************************************/
 
     AggregatorServerManager* aggregatorServerManager = readDirectoryFiles(arguments);
-    //printAggregatorManagerDirectoryDistributor(aggregatorServerManager, arguments->numWorkers);
+    //printAggregatorManagerDirectoryDistributor(DiseaseAggregatorServerManager, arguments->numWorkers);
 
 /*****************************************************************************
  *                               Start Server                                *
@@ -40,7 +41,7 @@ int main(int argc, char** argv){
     fprintf(stdout,"server has started...\n");
 
     aggregatorServerManager->numOfWorkers = arguments->numWorkers;
-    aggregatorServerManager->workersArray = (struct WorkerInfo*)malloc(sizeof(struct WorkerInfo) * aggregatorServerManager->numOfWorkers);
+    aggregatorServerManager->workersArray = (WorkerInfo*)malloc(sizeof(WorkerInfo) * aggregatorServerManager->numOfWorkers);
 
     /*create workers*/
     for(int i = 0; i < arguments->numWorkers; i++){
@@ -57,67 +58,39 @@ int main(int argc, char** argv){
             free(bufferSize_str);
         }
 
-        fifoName = malloc(sizeof(char) * DATA_SPACE);
-        make_fifo_name(pid, fifoName, sizeof(fifoName));
+        aggregatorServerManager->workersArray[i].workerPid = pid;
+        aggregatorServerManager->workersArray[i].serverFileName = (char*)malloc(sizeof(char) * DATA_SPACE);
+        aggregatorServerManager->workersArray[i].workerFileName = (char*)malloc(sizeof(char) * DATA_SPACE);
+        make_fifo_name_server_client(pid, aggregatorServerManager->workersArray[i].serverFileName);
 
-        if(mkfifo(fifoName, PERM_FILE) == -1){
-            if(errno != EEXIST) {
-                perror("receiver: mkfifo");
-                exit(6);
-            }
-        }
+        createNewFifoPipe(aggregatorServerManager->workersArray[i].serverFileName);
+        fd_client_w = openFifoToWrite(aggregatorServerManager->workersArray[i].serverFileName);
 
-        if ( (fd_client_w=open(fifoName, O_WRONLY)) < 0){
-            perror("fifo open error");
-            exit(1);
-        }
-
-        listSize = (char*)malloc(sizeof(char) * DATA_SPACE);
+        listSize = (char*)calloc(sizeof(char), DATA_SPACE);
         sprintf(listSize, "%d", aggregatorServerManager->directoryDistributor[i]->itemCount);
-        if (write(fd_client_w, listSize, arguments->bufferSize) == -1){
-            perror("Error in Writing");
-            exit(2);
-        }
+        writeInFifoPipe(fd_client_w, listSize, arguments->bufferSize);
         free(listSize);
+
         currentNode = (Node*)aggregatorServerManager->directoryDistributor[i]->head;
         while (currentNode != NULL){
             item = currentNode->item;
-            if (write(fd_client_w, item->dirName, arguments->bufferSize) == -1){
-                perror("Error in Writing");
-                exit(2);
-            }
+            writeInFifoPipe(fd_client_w, item->dirName, arguments->bufferSize);
             currentNode = currentNode->next;
         }
 
+        make_fifo_name_client_server(pid, aggregatorServerManager->workersArray[i].workerFileName);
+        createNewFifoPipe(aggregatorServerManager->workersArray[i].workerFileName);
+        fd_client_r = openFifoToRead(aggregatorServerManager->workersArray[i].workerFileName);
+        message = readFromFifoPipe(fd_client_r, arguments->bufferSize);
+
+        fprintf(stdout, "%s\n", message);
+        free(message);
+        close(fd_client_r);
         close(fd_client_w);
 
-        aggregatorServerManager->workersArray[i].serverFileName = malloc(sizeof(fifoName));
-/*        strcpy(serverInfo->workersArray[i].serverFileName, fifoName);*/
-        aggregatorServerManager->workersArray[i].workerPid = pid;
-
-        for(i = 0; i < 15; i++) {
-            endID = waitpid(pid, &status, WNOHANG|WUNTRACED);
-            if (endID == -1) {            /* error calling waitpid       */
-                perror("waitpid error");
-                exit(EXIT_FAILURE);
-            }
-            else if (endID == 0) {        /* child still running         */
-                time(&when);
-                printf("Parent waiting for child at %s", ctime(&when));
-                sleep(1);
-            }
-            else if (endID == pid) {  /* child ended                 */
-                if (WIFEXITED(status))
-                    printf("Child ended normally.n");
-                else if (WIFSIGNALED(status))
-                    printf("Child ended because of an uncaught signal.n");
-                else if (WIFSTOPPED(status))
-                    printf("Child process has stopped.n");
-                exit(EXIT_SUCCESS);
-            }
-        }
-
     }
+
+    DiseaseAggregatorServerManager(aggregatorServerManager);
 
 
     freeAggregatorInputArguments(arguments);

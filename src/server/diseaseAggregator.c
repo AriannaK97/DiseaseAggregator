@@ -2,7 +2,9 @@
 // Created by linuxuser on 21/5/20.
 //
 
+#include <sys/wait.h>
 #include "../../header/diseaseAggregator.h"
+#include "../../header/command_lib.h"
 
 
 AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments){
@@ -29,7 +31,7 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
     }
     rewinddir(FD);
 
-    aggregatorManager = (struct AggregatorServerManager*)malloc(sizeof(struct AggregatorServerManager));
+    aggregatorManager = (AggregatorServerManager*)malloc(sizeof(AggregatorServerManager));
     /*array of lists - each list holds the directories assigned to each worker*/
     aggregatorManager->directoryDistributor = (struct List**)malloc(sizeof(struct List*)*arguments->numWorkers);
 
@@ -100,8 +102,13 @@ void printAggregatorManagerDirectoryDistributor(AggregatorServerManager* aggrega
     }
 }
 
-bool make_fifo_name(pid_t workerNum, char *name, size_t name_max){
-    sprintf(name, "worker%d", workerNum);
+bool make_fifo_name_server_client(pid_t workerNum, char *name){
+    sprintf(name, "workerFromServer%d", workerNum);
+    return true;
+}
+
+bool make_fifo_name_client_server(pid_t workerNum, char *name){
+    sprintf(name, "workerFromClient%d", workerNum);
     return true;
 }
 
@@ -179,13 +186,15 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv){
             arguments->numWorkers = atoi(argv[i + 1]);
             numOfArgs += 2;
         } else if (strcmp(argv[i], "-b") == 0) {
-            if(atoi(argv[i + 1]) >= BUFFER_SIZE){
+            arguments->bufferSize = atoi(argv[i + 1]);
+            numOfArgs += 2;
+/*            if(atoi(argv[i + 1]) >= BUFFER_SIZE){
                 arguments->bufferSize = atoi(argv[i + 1]);
                 numOfArgs += 2;
             }else{
                 fprintf(stderr, "The BUCKET_SIZE you have provided is invalid! Provide a BUCKET_SIZE >= %d\n", BUCKET_SIZE);
                 scanf("%ld" ,&arguments->bufferSize);
-            }
+            }*/
         } else {
             fprintf(stderr, "Unknown option %s\n", argv[i]);
             exit(1);
@@ -196,6 +205,154 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv){
     }
 
     return arguments;
+}
+
+void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerManager){
+
+    char* command = NULL;
+    char* simpleCommand = NULL;
+    char* line = NULL;
+
+    size_t length = 0;
+
+    fprintf(stdout,"~$:");
+    while (getline(&line, &length, stdin) != EOF){
+
+        simpleCommand = strtok(line, "\n");
+        if(simpleCommand == NULL){
+            continue;
+        }else if(strcmp(simpleCommand, "/help") == 0){
+            helpDesc();
+        } else if(strcmp(simpleCommand, "/exit") == 0){
+            free(line);
+            //exitMonitor(manager);
+        }else {
+
+            command = strtok(simpleCommand, " ");
+
+            if (strcmp(command, "/listCountries") == 0) {
+
+                listCountries(aggregatorServerManager);
+
+            } else if (strcmp(command, "/diseaseFrequency") == 0) {
+                Date *date1;
+                Date *date2;
+                date1 = malloc(sizeof(struct Date));
+                date2 = malloc(sizeof(struct Date));
+
+                char *virusName = strtok(NULL, " ");   //virus
+                char *arg2 = strtok(NULL, " ");   //date1
+                char *arg3 = strtok(NULL, " ");   //date2
+                char *country = strtok(NULL, " ");
+
+                date1->day = atoi(strtok(arg2, "-"));
+                date1->month = atoi(strtok(NULL, "-"));
+                date1->year = atoi(strtok(NULL, "-"));
+                date2->day = atoi(strtok(arg3, "-"));
+                date2->month = atoi(strtok(NULL, "-"));
+                date2->year = atoi(strtok(NULL, "-"));
+
+                if (country != NULL) {
+                    //diseaseFrequency(manager, virusName, date1, date2, country);
+                } else
+                    //diseaseFrequency(manager, virusName, date1, date2, NULL);
+
+                free(date1);
+                free(date2);
+
+            } else if (strcmp(command, "/topk-AgeRanges") == 0) {
+
+                int k = atoi(strtok(NULL, " "));
+                char *country = strtok(NULL, " ");
+                char *disease = strtok(NULL, " ");
+                char *arg3 = strtok(NULL, " ");
+                char *arg4 = strtok(NULL, " ");
+
+                if (arg3 != NULL && arg4 != NULL) {
+                    Date *date1 = malloc(sizeof(struct Date));
+                    Date *date2 = malloc(sizeof(struct Date));
+                    date1->day = atoi(strtok(arg3, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg4, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    //topk_AgeRanges(manager, k, country, disease, date1, date2);
+                    free(date1);
+                    free(date2);
+
+                } else if (arg3 == NULL || arg4 == NULL) {
+                    fprintf(stderr, "Missing date space. Please try again...\n~$:");
+                }
+
+            } else if (strcmp(command, "/searchPatientRecord") == 0) {
+
+                char* recordID = strtok(NULL, "\n");
+                //searchPatientRecord(manager, recordID);
+
+            } else if (strcmp(command, "/numPatientAdmissions") == 0) {
+
+                Date *date1;
+                Date *date2;
+                date1 = malloc(sizeof(struct Date));
+                date2 = malloc(sizeof(struct Date));
+
+                char *virusName = strtok(NULL, " ");   //virus
+                char *arg2 = strtok(NULL, " ");   //date1
+                char *arg3 = strtok(NULL, " ");   //date2
+                char *country = strtok(NULL, " ");
+
+                date1->day = atoi(strtok(arg2, "-"));
+                date1->month = atoi(strtok(NULL, "-"));
+                date1->year = atoi(strtok(NULL, "-"));
+                date2->day = atoi(strtok(arg3, "-"));
+                date2->month = atoi(strtok(NULL, "-"));
+                date2->year = atoi(strtok(NULL, "-"));
+
+/*                if (country != NULL) {
+                    numPatientAdmissions(manager, virusName, date1, date2, country);
+                } else
+                    numPatientAdmissions(manager, virusName, date1, date2, NULL);*/
+
+                free(date1);
+                free(date2);
+
+            } else if (strcmp(command, "/numPatientDischarges") == 0) {
+                Date *date1;
+                Date *date2;
+                date1 = malloc(sizeof(struct Date));
+                date2 = malloc(sizeof(struct Date));
+
+                char *virusName = strtok(NULL, " ");   //virus
+                char *arg2 = strtok(NULL, " ");   //date1
+                char *arg3 = strtok(NULL, " ");   //date2
+                char *country = strtok(NULL, " ");
+
+                date1->day = atoi(strtok(arg2, "-"));
+                date1->month = atoi(strtok(NULL, "-"));
+                date1->year = atoi(strtok(NULL, "-"));
+                date2->day = atoi(strtok(arg3, "-"));
+                date2->month = atoi(strtok(NULL, "-"));
+                date2->year = atoi(strtok(NULL, "-"));
+
+/*                if (country != NULL) {
+                    numPatientDischarges(manager, virusName, date1, date2, country);
+                } else
+                    numPatientDischarges(manager, virusName, date1, date2, NULL);*/
+
+                free(date1);
+                free(date2);
+            } else {
+                fprintf(stdout,"The command you have entered does not exist.\n You can see the "
+                               "available commands by hitting /help.\n~$:");
+            }
+        }
+    }
+
+
+    for (int j = 0; j < aggregatorServerManager->numOfWorkers; ++j) {
+        wait(NULL);
+    }
 }
 
 void nodeDirListItemDeallock(DirListItem* dirListItem){

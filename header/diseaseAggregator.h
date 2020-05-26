@@ -40,7 +40,7 @@ typedef struct FileExplorer{
     char* country;  /*current directory*/
     int failedEntries;
     int successfulEntries;
-    FileItem** fileArray;
+    FileItem* fileArray;
 }FileExplorer;
 
 typedef struct AggregatorInputArguments{
@@ -52,6 +52,7 @@ typedef struct AggregatorInputArguments{
 typedef struct WorkerInfo{
     pid_t workerPid;
     char *serverFileName;
+    char *workerFileName;
 }WorkerInfo;
 
 typedef struct AggregatorServerManager{
@@ -66,7 +67,9 @@ void freeAggregatorInputArguments(AggregatorInputArguments *aggregatorInputArgum
 
 void freeWorkerInfo(WorkerInfo workerInfo);
 
-bool make_fifo_name(pid_t workerNum, char *name, size_t name_max);
+bool make_fifo_name_server_client(pid_t workerNum, char *name);
+
+bool make_fifo_name_client_server(pid_t workerNum, char *name);
 
 AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments);
 
@@ -79,5 +82,7 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv);
 void printAggregatorManagerDirectoryDistributor(AggregatorServerManager* aggregatorManager, int numOfWorkers);
 
 void nodeDirListItemDeallock(DirListItem* dirListItem);
+
+void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerManager);
 
 #endif //DISEASEAGGREGATOR_DISEASEAGGREGATOR_H

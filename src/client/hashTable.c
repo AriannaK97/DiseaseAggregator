@@ -249,13 +249,7 @@ int iterateBucketData(Bucket* bucket, int operationCall, HashElement* hashIterat
                     counter = 0;
                 }
 
-            }else if(operationCall == GET_HEAP_NODES_COUNTRY_DATES){
-
-                if(strcmp(iterator[i].data, hashIterator->country)==0){
-                    counter += countPatients_BetweenDates((rbTree*)iterator[i].tree, operationCall, hashIterator);
-                }
-
-            }else if (operationCall == GET_HEAP_NODES_VIRUS_DATES){
+            }else if (operationCall == GET_HEAP_NODES_AGE_RANGE_DATES){
 
                 if(strcmp(iterator[i].data, hashIterator->virus)==0){
                     counter += countPatients_BetweenDates((rbTree*)iterator[i].tree, operationCall, hashIterator);
@@ -274,17 +268,6 @@ int iterateBucketData(Bucket* bucket, int operationCall, HashElement* hashIterat
                 if(strlen(iterator[i].data)!=0)
                     fprintf(stdout, "%s\n", iterator[i].data);
 
-            }else if(operationCall == GET_HEAP_NODES_VIRUS){    //for topk_Countries
-
-                if(strcmp(iterator[i].data, hashIterator->virus)==0){
-                    counter += countPatients((rbTree*)iterator[i].tree, operationCall, hashIterator);
-                }
-
-            }else if(operationCall == GET_HEAP_NODES_COUNTRY){  //for topk_Diseases
-
-                if(strcmp(iterator[i].data, hashIterator->country)==0){
-                    counter += countPatients((rbTree*)iterator[i].tree, operationCall, hashIterator);
-                }
             }
         }
     }

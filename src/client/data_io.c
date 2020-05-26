@@ -134,13 +134,9 @@ PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplor
         tokenCase++;
     }
 
-    if(strcmp(newPatient->recordID, "Hvyfj8") == 0){
-        printf("bla\n");
-    }
-
     newPatient->country = malloc(DATA_SPACE*sizeof(char));
     strcpy(newPatient->country, fileExplorer->country);
-    if(!setDate(newPatient, fileExplorer->fileArray[dirNum][fileExplorerPointer].fileName)){
+    if(!setDate(newPatient, fileExplorer->fileArray[fileExplorerPointer].fileName)){
         fprintf(stderr, "Date Error!\n");
         free(newPatient);
         return NULL;
@@ -189,6 +185,9 @@ CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
     cmdManager->patientList = NULL;
     cmdManager->input_dir = (char*)malloc(sizeof(char)*DIR_LEN);
     strcpy(cmdManager->input_dir, monitorInputArguments->input_dir);
+    cmdManager->workerInfo = malloc(sizeof(WorkerInfo));
+    cmdManager->workerInfo->serverFileName = malloc(sizeof(char)*DIR_LEN);
+    cmdManager->workerInfo->workerFileName = malloc(sizeof(char)*DIR_LEN);
     cmdManager->countryHashTable = hashCreate(monitorInputArguments->countryHashTableNumOfEntries);
     cmdManager->diseaseHashTable = hashCreate(monitorInputArguments->diseaseHashtableNumOfEntries);
     cmdManager->bucketSize = monitorInputArguments->bucketSize;
@@ -256,7 +255,6 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
     FILE* entry_file;
     DIR* FD;
     DirListItem* item;
-    FileItem* fileArray;
     FileExplorer* fileExplorer;
     int numOfFileInSubDirectory = 0;
     int arraySize;
@@ -276,15 +274,14 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
         fileExplorer->country = malloc(sizeof(char) * DIR_LEN);
         fileExplorer->successfulEntries = 0;
         fileExplorer->failedEntries = 0;
-        fileExplorer->fileArray = malloc(sizeof(FileItem) * arraySize);
-        fileArray = createFileArray(FD, item, arraySize);
+        fileExplorer->fileArray = (FileItem*) malloc(sizeof(FileItem) * arraySize);
+        fileExplorer->fileArray = createFileArray(FD, item, arraySize);
         strcpy(fileExplorer->country, item->dirName);
-        memcpy(&fileExplorer->fileArray[dirNum], &fileArray, sizeof(FileItem) * arraySize);
 
-        for (int i = 0; i < arraySize-1; i++) {
-            entry_file = fopen(fileArray[i].filePath, "r");
+        for (int i = 0; i < arraySize; i++) {
+            entry_file = fopen(fileExplorer->fileArray[i].filePath, "r");
             if (entry_file == NULL) {
-                fprintf(stderr, "Error : Failed to open entry file %s - %s\n", fileArray[i].filePath, strerror(errno));
+                fprintf(stderr, "Error : Failed to open entry file %s - %s\n", fileExplorer->fileArray[i].filePath, strerror(errno));
                 exit(1);
             }
 
@@ -292,11 +289,9 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
                                          fileExplorer, i, dirNum);
             fclose(entry_file);
             numOfFileInSubDirectory++;
-            printf("list items:%d\n", cmdManager->patientList->itemCount);
         }
         dirNum++;
         node = node->next;
-        printf("kjnweofnwnwol");
     }
 /*    printf("kjnweofnwnwol");
     if(cmdManager->patientList->itemCount != 0)

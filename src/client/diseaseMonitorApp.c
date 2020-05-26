@@ -14,11 +14,12 @@
 #include "../../header/data_io.h"
 #include "../../header/command_lib.h"
 #include "../../header/diseaseAggregator.h"
+#include "../../header/communication.h"
 
 int main(int argc, char** argv) {
-    WorkerInfo workerInfo;
-    char *fifoName;
+
     int fd_client_r = -1;
+    int fd_client_w = -1;
     char* message;
     char* dataLengthStr;
     int dataLength;
@@ -30,43 +31,28 @@ int main(int argc, char** argv) {
  *                       Handling command line arguments                     *
  *****************************************************************************/
     MonitorInputArguments* arguments = getMonitorInputArgs(argc, argv);
-/*    fprintf(stdout,"%ld, %ld, %d, %d, %s\n", arguments->bufferSize, arguments->bucketSize,
-            arguments->countryHashTableNumOfEntries, arguments->diseaseHashtableNumOfEntries, arguments->input_dir);*/
-    fprintf(stdout, "I am the client\n");
 /*****************************************************************************
  *                       Handling input files                                *
  *****************************************************************************/
 
 
     cmdManager = initializeStructures(arguments);
-    workerInfo.workerPid = getpid();
-    fifoName = malloc(sizeof(char) * DATA_SPACE);
-    make_fifo_name(workerInfo.workerPid, fifoName, sizeof(fifoName));
+    cmdManager->workerInfo->workerPid = getpid();
 
-    if(mkfifo(fifoName, PERM_FILE) == -1 && errno != EEXIST){
-        perror("receiver: mkfifo");
-        exit(6);
-    }
+    make_fifo_name_server_client(cmdManager->workerInfo->workerPid, cmdManager->workerInfo->serverFileName);
+    createNewFifoPipe(cmdManager->workerInfo->serverFileName);
 
-    if ( (fd_client_r=open(fifoName, O_RDWR)) < 0){
-        perror("fifo open problem");
-        exit(3);
-    }
+    fd_client_r = openFifoToRead(cmdManager->workerInfo->serverFileName);
 
     dataLengthStr = (char*)calloc(sizeof(char), DIR_LEN+1);
-    if (read(fd_client_r, dataLengthStr, arguments->bufferSize) < 0) {
-        perror("problem in reading");
-        exit(5);
-    }
+
+    dataLengthStr = readFromFifoPipe(fd_client_r, arguments->bufferSize);
+
     dataLength = atoi(dataLengthStr);
 
     for (int i = 0; i < dataLength; i++){
 
-        message = (char*)calloc(sizeof(char),DIR_LEN+1);
-        if (read(fd_client_r, message, arguments->bufferSize) < 0) {
-            perror("problem in reading");
-            exit(5);
-        }
+        message = readFromFifoPipe(fd_client_r, arguments->bufferSize);
 
         newNodeItem = (struct DirListItem*)malloc(sizeof(struct DirListItem));
         newNodeItem->dirName = (char*)calloc(sizeof(char),DIR_LEN);
@@ -84,23 +70,34 @@ int main(int argc, char** argv) {
             push(newNode, cmdManager->directoryList);
         }
 
-       // printf("Message Received: %s\n", newNodeItem->dirPath);
+        printf("Message Received: %s\n", newNodeItem->dirPath);
         free(message);
     }
 
 
     cmdManager = read_directory_list(cmdManager);
-    //printList(cmdManager->patientList);
+
+    /**
+     * Send success message back to parent through clients fifo
+     * */
+    make_fifo_name_client_server(cmdManager->workerInfo->workerPid, cmdManager->workerInfo->workerFileName);
+    createNewFifoPipe(cmdManager->workerInfo->workerFileName);
+    fd_client_w = openFifoToWrite(cmdManager->workerInfo->workerFileName);
+
+    message = (char*)calloc(sizeof(char),DIR_LEN+1);
+    message = "Worker with pid has started...\n";
+    writeInFifoPipe(fd_client_w, message, arguments->bufferSize);
+
     fflush(stdout);
     free(arguments);
-    //close(fd_client_r);
-    //fclose(patientRecordsFile);
 
+    close(fd_client_w);
+    close(fd_client_r);
     /**
      * Uncomment the line below to see all the inserted patients in the list
      * */
 
-
+    //printList(cmdManager->patientList);
 
 
     /**
@@ -108,9 +105,8 @@ int main(int argc, char** argv) {
      * */
     //applyOperationOnHashTable(cmdManager->diseaseHashTable, PRINT);
     //applyOperationOnHashTable(cmdManager->countryHashTable, PRINT);
-
-    commandServer(cmdManager);
+    //commandServer(cmdManager);
     fprintf(stdout, "exiting child\n");
-    close(fd_client_r);
+
     exit(0);
 }
