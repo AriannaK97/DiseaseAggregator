@@ -18,6 +18,7 @@ int main(int argc, char** argv){
     DirListItem* item;
     int fd_client_w = -1;
     int fd_client_r = -1;
+    int messageSize;
     char *listSize;
     char *message;
     pid_t pid;
@@ -40,6 +41,7 @@ int main(int argc, char** argv){
 
     fprintf(stdout,"server has started...\n");
 
+    aggregatorServerManager->bufferSize = arguments->bufferSize;
     aggregatorServerManager->numOfWorkers = arguments->numWorkers;
     aggregatorServerManager->workersArray = (WorkerInfo*)malloc(sizeof(WorkerInfo) * aggregatorServerManager->numOfWorkers);
 
@@ -59,35 +61,60 @@ int main(int argc, char** argv){
         }
 
         aggregatorServerManager->workersArray[i].workerPid = pid;
-        aggregatorServerManager->workersArray[i].serverFileName = (char*)malloc(sizeof(char) * DATA_SPACE);
-        aggregatorServerManager->workersArray[i].workerFileName = (char*)malloc(sizeof(char) * DATA_SPACE);
-        make_fifo_name_server_client(pid, aggregatorServerManager->workersArray[i].serverFileName);
+        aggregatorServerManager->workersArray[i].serverFileName = (char*)calloc(sizeof(char), DIR_LEN);
+        aggregatorServerManager->workersArray[i].workerFileName = (char*)calloc(sizeof(char),DIR_LEN);
 
+
+        /*make fifo pipe for server*/
+        make_fifo_name_server_client(pid, aggregatorServerManager->workersArray[i].serverFileName);
         createNewFifoPipe(aggregatorServerManager->workersArray[i].serverFileName);
         fd_client_w = openFifoToWrite(aggregatorServerManager->workersArray[i].serverFileName);
 
-        listSize = (char*)calloc(sizeof(char), DATA_SPACE);
-        sprintf(listSize, "%d", aggregatorServerManager->directoryDistributor[i]->itemCount);
-        writeInFifoPipe(fd_client_w, listSize, arguments->bufferSize);
-        free(listSize);
+        /*send the length of the data the client has to read*/
+        writeInFifoPipe(fd_client_w, &(aggregatorServerManager->directoryDistributor[i]->itemCount), sizeof(int));
 
         currentNode = (Node*)aggregatorServerManager->directoryDistributor[i]->head;
         while (currentNode != NULL){
             item = currentNode->item;
-            writeInFifoPipe(fd_client_w, item->dirName, arguments->bufferSize);
+            messageSize = strlen(item->dirName);
+            /*write the size of the name of the directory to follow to fifo*/
+            //printf("%d\n", messageSize);
+            writeInFifoPipe(fd_client_w, &messageSize, sizeof(int));
+            /*write the directory name to fifo*/
+            if(messageSize > arguments->bufferSize)
+                writeInFifoPipe(fd_client_w, item->dirName, (size_t)messageSize);
+            else
+                writeInFifoPipe(fd_client_w, item->dirName, arguments->bufferSize);
             currentNode = currentNode->next;
         }
 
+        /*transmit end of sending data*/
+        int noMessage = 0;
+        writeInFifoPipe(fd_client_w, &noMessage, sizeof(int));
+
+        close(fd_client_w);
+
+        /*start receiving*/
         make_fifo_name_client_server(pid, aggregatorServerManager->workersArray[i].workerFileName);
         createNewFifoPipe(aggregatorServerManager->workersArray[i].workerFileName);
         fd_client_r = openFifoToRead(aggregatorServerManager->workersArray[i].workerFileName);
-        message = readFromFifoPipe(fd_client_r, arguments->bufferSize);
+        /*receive the size of the incoming message from fifo*/
+        readFromFifoPipe(fd_client_r, &messageSize, sizeof(int));
+        /*read actual message from fifo*/
+        message = calloc(sizeof(char), messageSize+1);
+        if(messageSize > arguments->bufferSize)
+            readFromFifoPipe(fd_client_r, message,messageSize);
+        else
+            readFromFifoPipe(fd_client_r, message,arguments->bufferSize);
 
         fprintf(stdout, "%s\n", message);
         free(message);
         close(fd_client_r);
-        close(fd_client_w);
 
+    }
+
+    for (int j = 0; j < aggregatorServerManager->numOfWorkers; ++j) {
+        wait(NULL);
     }
 
     DiseaseAggregatorServerManager(aggregatorServerManager);

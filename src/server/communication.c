@@ -31,16 +31,15 @@ int openFifoToWrite(char *fileName){
     return fd_client_w;
 }
 
-char* readFromFifoPipe(int fd_client_r, size_t bufferSize){
-    char *message = (char*)calloc(sizeof(char),DIR_LEN+1);
+void readFromFifoPipe(int fd_client_r, void* message,size_t bufferSize){
+    //char *message = (char*)calloc(sizeof(char),DIR_LEN+1);
     if (read(fd_client_r, message, bufferSize) < 0) {
         perror("problem in reading");
         exit(5);
     }
-    return message;
 }
 
-void writeInFifoPipe(int fd_client_w, char* message ,size_t bufferSize){
+void writeInFifoPipe(int fd_client_w, void* message ,size_t bufferSize){
     if (write(fd_client_w, message, bufferSize) == -1){
         perror("Error in Writing");
         exit(2);

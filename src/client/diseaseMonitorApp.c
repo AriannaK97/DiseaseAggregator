@@ -20,8 +20,9 @@ int main(int argc, char** argv) {
 
     int fd_client_r = -1;
     int fd_client_w = -1;
+    int messageSize;
     char* message;
-    char* dataLengthStr;
+    int dataLengthStr;
     int dataLength;
     DirListItem* newNodeItem = NULL;
     Node* newNode = NULL;
@@ -44,19 +45,27 @@ int main(int argc, char** argv) {
 
     fd_client_r = openFifoToRead(cmdManager->workerInfo->serverFileName);
 
-    dataLengthStr = (char*)calloc(sizeof(char), DIR_LEN+1);
-
-    dataLengthStr = readFromFifoPipe(fd_client_r, arguments->bufferSize);
-
-    dataLength = atoi(dataLengthStr);
+    /*receive from server the length of data the client will receive*/
+    readFromFifoPipe(fd_client_r, &dataLength, sizeof(int));
 
     for (int i = 0; i < dataLength; i++){
 
-        message = readFromFifoPipe(fd_client_r, arguments->bufferSize);
+        /*receive the size of the incoming message from fifo*/
+        readFromFifoPipe(fd_client_r, &messageSize, sizeof(int));
+
+        /*read actual message from fifo*/
+        if (messageSize > arguments->bufferSize) {
+            message = malloc(sizeof(char) * messageSize + 1);
+            readFromFifoPipe(fd_client_r, message, messageSize);
+        }else{
+            message = malloc(sizeof(char)*(arguments->bufferSize)+1);
+            readFromFifoPipe(fd_client_r, message,arguments->bufferSize);
+            messageSize = arguments->bufferSize;
+        }
 
         newNodeItem = (struct DirListItem*)malloc(sizeof(struct DirListItem));
-        newNodeItem->dirName = (char*)calloc(sizeof(char),DIR_LEN);
-        newNodeItem->dirPath = (char*)calloc(sizeof(char),DIR_LEN);
+        newNodeItem->dirName = (char*)malloc(sizeof(char)*DIR_LEN);
+        newNodeItem->dirPath = (char*)malloc(sizeof(char)*DIR_LEN);
 
         strcpy(newNodeItem->dirName, message);
         strcpy(newNodeItem->dirPath, arguments->input_dir);
@@ -70,12 +79,18 @@ int main(int argc, char** argv) {
             push(newNode, cmdManager->directoryList);
         }
 
-        printf("Message Received: %s\n", newNodeItem->dirPath);
+        printf("Message Received: %s\n", newNodeItem->dirName);
+
         free(message);
     }
 
+    /*receive end of transmission from server*/
+    int noMessage = -1;
+    while (noMessage != 0){
+        readFromFifoPipe(fd_client_r, &noMessage, sizeof(int));
+    }
 
-    cmdManager = read_directory_list(cmdManager);
+    //cmdManager = read_directory_list(cmdManager);
 
     /**
      * Send success message back to parent through clients fifo
@@ -84,15 +99,21 @@ int main(int argc, char** argv) {
     createNewFifoPipe(cmdManager->workerInfo->workerFileName);
     fd_client_w = openFifoToWrite(cmdManager->workerInfo->workerFileName);
 
-    message = (char*)calloc(sizeof(char),DIR_LEN+1);
-    message = "Worker with pid has started...\n";
-    writeInFifoPipe(fd_client_w, message, arguments->bufferSize);
+    message = (char*)calloc(sizeof(char),DIR_LEN);
+    strcpy(message, "Worker with pid has started...\n");
+    messageSize = strlen(message);
+    /*write the size of the name of the directory to follow to fifo*/
+    writeInFifoPipe(fd_client_w, &messageSize, sizeof(int));
+    /*write the directory name to fifo*/
+    if(messageSize > arguments->bufferSize)
+        writeInFifoPipe(fd_client_w, message, (size_t)messageSize);
+    else
+        writeInFifoPipe(fd_client_w, message, arguments->bufferSize);
 
     fflush(stdout);
     free(arguments);
 
-    close(fd_client_w);
-    close(fd_client_r);
+
     /**
      * Uncomment the line below to see all the inserted patients in the list
      * */
@@ -105,8 +126,11 @@ int main(int argc, char** argv) {
      * */
     //applyOperationOnHashTable(cmdManager->diseaseHashTable, PRINT);
     //applyOperationOnHashTable(cmdManager->countryHashTable, PRINT);
-    //commandServer(cmdManager);
-    fprintf(stdout, "exiting child\n");
 
+    //commandServer(cmdManager);
+
+    fprintf(stdout, "exiting child\n");
+    close(fd_client_w);
+    close(fd_client_r);
     exit(0);
 }

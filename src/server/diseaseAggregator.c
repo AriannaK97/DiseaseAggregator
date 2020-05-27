@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include "../../header/diseaseAggregator.h"
 #include "../../header/command_lib.h"
+#include "../../header/communication.h"
 
 
 AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments){
@@ -54,8 +55,8 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
         }
 
         newNode = (struct DirListItem*)malloc(sizeof(struct DirListItem));
-        newNode->dirPath = (char*)calloc(sizeof(char), DIR_LEN);
-        newNode->dirName = (char*)calloc(sizeof(char), DIR_LEN);
+        newNode->dirPath = (char*)calloc(sizeof(char), strlen(subDirPath)+1);
+        newNode->dirName = (char*)calloc(sizeof(char), strlen(in_dir->d_name)+strlen(subDirPath)+1);
 
         strcpy(newNode->dirName, in_dir->d_name);
         strcpy(newNode->dirPath, subDirPath);
@@ -188,13 +189,6 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv){
         } else if (strcmp(argv[i], "-b") == 0) {
             arguments->bufferSize = atoi(argv[i + 1]);
             numOfArgs += 2;
-/*            if(atoi(argv[i + 1]) >= BUFFER_SIZE){
-                arguments->bufferSize = atoi(argv[i + 1]);
-                numOfArgs += 2;
-            }else{
-                fprintf(stderr, "The BUCKET_SIZE you have provided is invalid! Provide a BUCKET_SIZE >= %d\n", BUCKET_SIZE);
-                scanf("%ld" ,&arguments->bufferSize);
-            }*/
         } else {
             fprintf(stderr, "Unknown option %s\n", argv[i]);
             exit(1);
@@ -211,7 +205,11 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerMan
 
     char* command = NULL;
     char* simpleCommand = NULL;
+    char* arguments = NULL;
     char* line = NULL;
+    int fd_client_w = -1;
+    int commandLength = 0;
+    int argLength = 0;
 
     size_t length = 0;
 
@@ -234,125 +232,36 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerMan
 
                 listCountries(aggregatorServerManager);
 
-            } else if (strcmp(command, "/diseaseFrequency") == 0) {
-                Date *date1;
-                Date *date2;
-                date1 = malloc(sizeof(struct Date));
-                date2 = malloc(sizeof(struct Date));
-
-                char *virusName = strtok(NULL, " ");   //virus
-                char *arg2 = strtok(NULL, " ");   //date1
-                char *arg3 = strtok(NULL, " ");   //date2
-                char *country = strtok(NULL, " ");
-
-                date1->day = atoi(strtok(arg2, "-"));
-                date1->month = atoi(strtok(NULL, "-"));
-                date1->year = atoi(strtok(NULL, "-"));
-                date2->day = atoi(strtok(arg3, "-"));
-                date2->month = atoi(strtok(NULL, "-"));
-                date2->year = atoi(strtok(NULL, "-"));
-
-                if (country != NULL) {
-                    //diseaseFrequency(manager, virusName, date1, date2, country);
-                } else
-                    //diseaseFrequency(manager, virusName, date1, date2, NULL);
-
-                free(date1);
-                free(date2);
-
-            } else if (strcmp(command, "/topk-AgeRanges") == 0) {
-
-                int k = atoi(strtok(NULL, " "));
-                char *country = strtok(NULL, " ");
-                char *disease = strtok(NULL, " ");
-                char *arg3 = strtok(NULL, " ");
-                char *arg4 = strtok(NULL, " ");
-
-                if (arg3 != NULL && arg4 != NULL) {
-                    Date *date1 = malloc(sizeof(struct Date));
-                    Date *date2 = malloc(sizeof(struct Date));
-                    date1->day = atoi(strtok(arg3, "-"));
-                    date1->month = atoi(strtok(NULL, "-"));
-                    date1->year = atoi(strtok(NULL, "-"));
-                    date2->day = atoi(strtok(arg4, "-"));
-                    date2->month = atoi(strtok(NULL, "-"));
-                    date2->year = atoi(strtok(NULL, "-"));
-                    //topk_AgeRanges(manager, k, country, disease, date1, date2);
-                    free(date1);
-                    free(date2);
-
-                } else if (arg3 == NULL || arg4 == NULL) {
-                    fprintf(stderr, "Missing date space. Please try again...\n~$:");
-                }
-
-            } else if (strcmp(command, "/searchPatientRecord") == 0) {
-
-                char* recordID = strtok(NULL, "\n");
-                //searchPatientRecord(manager, recordID);
-
-            } else if (strcmp(command, "/numPatientAdmissions") == 0) {
-
-                Date *date1;
-                Date *date2;
-                date1 = malloc(sizeof(struct Date));
-                date2 = malloc(sizeof(struct Date));
-
-                char *virusName = strtok(NULL, " ");   //virus
-                char *arg2 = strtok(NULL, " ");   //date1
-                char *arg3 = strtok(NULL, " ");   //date2
-                char *country = strtok(NULL, " ");
-
-                date1->day = atoi(strtok(arg2, "-"));
-                date1->month = atoi(strtok(NULL, "-"));
-                date1->year = atoi(strtok(NULL, "-"));
-                date2->day = atoi(strtok(arg3, "-"));
-                date2->month = atoi(strtok(NULL, "-"));
-                date2->year = atoi(strtok(NULL, "-"));
-
-/*                if (country != NULL) {
-                    numPatientAdmissions(manager, virusName, date1, date2, country);
-                } else
-                    numPatientAdmissions(manager, virusName, date1, date2, NULL);*/
-
-                free(date1);
-                free(date2);
-
-            } else if (strcmp(command, "/numPatientDischarges") == 0) {
-                Date *date1;
-                Date *date2;
-                date1 = malloc(sizeof(struct Date));
-                date2 = malloc(sizeof(struct Date));
-
-                char *virusName = strtok(NULL, " ");   //virus
-                char *arg2 = strtok(NULL, " ");   //date1
-                char *arg3 = strtok(NULL, " ");   //date2
-                char *country = strtok(NULL, " ");
-
-                date1->day = atoi(strtok(arg2, "-"));
-                date1->month = atoi(strtok(NULL, "-"));
-                date1->year = atoi(strtok(NULL, "-"));
-                date2->day = atoi(strtok(arg3, "-"));
-                date2->month = atoi(strtok(NULL, "-"));
-                date2->year = atoi(strtok(NULL, "-"));
-
-/*                if (country != NULL) {
-                    numPatientDischarges(manager, virusName, date1, date2, country);
-                } else
-                    numPatientDischarges(manager, virusName, date1, date2, NULL);*/
-
-                free(date1);
-                free(date2);
             } else {
-                fprintf(stdout,"The command you have entered does not exist.\n You can see the "
-                               "available commands by hitting /help.\n~$:");
+                arguments = strtok(NULL, "\n");
+                strcat(command, " ");
+                strcat(command, arguments);
+                printf("%s--------------\n", command);
+                for (int i = 0; i < aggregatorServerManager->numOfWorkers; i++) {
+                    fd_client_w = openFifoToWrite(aggregatorServerManager->workersArray[i].serverFileName);
+                    commandLength = strlen(command);
+                    argLength = strlen(arguments);
+
+                    /*send size of the command to be send next*/
+                    writeInFifoPipe(fd_client_w, &commandLength, sizeof(int));
+                    /*write the directory name to fifo*/
+                    if(commandLength > aggregatorServerManager->bufferSize)
+                        writeInFifoPipe(fd_client_w, command, (size_t)commandLength);
+                    else
+                        writeInFifoPipe(fd_client_w, command, aggregatorServerManager->bufferSize);
+
+                    /*send size of the arguments to be send next*/
+/*                    writeInFifoPipe(fd_client_w, &argLength, sizeof(int));
+                    if(argLength > aggregatorServerManager->bufferSize)
+                        writeInFifoPipe(fd_client_w, arguments, (size_t)argLength);
+                    else
+                        writeInFifoPipe(fd_client_w, arguments, aggregatorServerManager->bufferSize);*/
+
+                }
             }
         }
     }
 
-
-    for (int j = 0; j < aggregatorServerManager->numOfWorkers; ++j) {
-        wait(NULL);
-    }
 }
 
 void nodeDirListItemDeallock(DirListItem* dirListItem){

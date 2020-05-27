@@ -59,6 +59,7 @@ typedef struct AggregatorServerManager{
     List** directoryDistributor;
     int numOfWorkers;
     WorkerInfo *workersArray;
+    size_t bufferSize;
 }AggregatorServerManager;
 
 void freeAggregatorManager(AggregatorServerManager *aggregatorManager);
