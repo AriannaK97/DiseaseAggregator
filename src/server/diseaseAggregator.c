@@ -16,8 +16,8 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
     char *subDirPath = (char*)malloc(DIR_LEN*sizeof(char));
     AggregatorServerManager* aggregatorManager;
     int distributionPointer = 0;
-    int listInitiatorFlag = 0;
-    DirListItem* newNode = NULL;
+    DirListItem* newItem = NULL;
+    Node* listNode = NULL;
 
     /* Scanning the in directory */
     if (NULL == (FD = opendir (arguments->input_dir))){
@@ -34,7 +34,10 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
 
     aggregatorManager = (AggregatorServerManager*)malloc(sizeof(AggregatorServerManager));
     /*array of lists - each list holds the directories assigned to each worker*/
-    aggregatorManager->directoryDistributor = (struct List**)malloc(sizeof(struct List*)*arguments->numWorkers);
+    aggregatorManager->directoryDistributor = (List**)calloc(sizeof(List*),arguments->numWorkers);
+    for (int i = 0; i < arguments->numWorkers; ++i) {
+        aggregatorManager->directoryDistributor[i] = NULL;
+    }
 
     while ((in_dir = readdir(FD))){
         if(distributionPointer >= arguments->numWorkers){
@@ -54,22 +57,19 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
             exit(1);
         }
 
-        newNode = (struct DirListItem*)malloc(sizeof(struct DirListItem));
-        newNode->dirPath = (char*)calloc(sizeof(char), strlen(subDirPath)+1);
-        newNode->dirName = (char*)calloc(sizeof(char), strlen(in_dir->d_name)+strlen(subDirPath)+1);
+        newItem = (struct DirListItem*)malloc(sizeof(struct DirListItem));
+        newItem->dirPath = (char*)calloc(sizeof(char), strlen(subDirPath) + 1);
+        newItem->dirName = (char*)calloc(sizeof(char), strlen(in_dir->d_name) + strlen(subDirPath) + 1);
 
-        strcpy(newNode->dirName, in_dir->d_name);
-        strcpy(newNode->dirPath, subDirPath);
+        strcpy(newItem->dirName, in_dir->d_name);
+        strcpy(newItem->dirPath, subDirPath);
 
-
-        if(listInitiatorFlag == 0){
-            aggregatorManager->directoryDistributor[distributionPointer] = linkedListInit(nodeInit(newNode));
+        listNode = nodeInit(newItem);
+        if(aggregatorManager->directoryDistributor[distributionPointer] == NULL){
+            aggregatorManager->directoryDistributor[distributionPointer] = linkedListInit(listNode);
         } else
-            push(nodeInit(newNode), aggregatorManager->directoryDistributor[distributionPointer]);
+            push(listNode, aggregatorManager->directoryDistributor[distributionPointer]);
 
-        if(distributionPointer == arguments->numWorkers-1){
-            listInitiatorFlag = 1;
-        }
 
         distributionPointer++;
 

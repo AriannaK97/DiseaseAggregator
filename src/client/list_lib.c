@@ -15,7 +15,7 @@ Node* nodeInit(void* item){
 }
 
 List* linkedListInit(Node* node){
-    List* newList = (struct List*)malloc(sizeof(List));
+    List* newList = (List*)malloc(sizeof(List));
     newList->head = node;
     newList->tail = node;
     newList->itemCount = 0;

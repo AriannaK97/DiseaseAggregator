@@ -53,6 +53,8 @@ typedef struct WorkerInfo{
     pid_t workerPid;
     char *serverFileName;
     char *workerFileName;
+    int fd_client_w;
+    int fd_client_r;
 }WorkerInfo;
 
 typedef struct AggregatorServerManager{

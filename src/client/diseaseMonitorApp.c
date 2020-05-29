@@ -22,8 +22,8 @@ int main(int argc, char** argv) {
     int fd_client_w = -1;
     int messageSize;
     char* message;
+    //int dataLengthStr;
     int dataLengthStr;
-    int dataLength;
     DirListItem* newNodeItem = NULL;
     Node* newNode = NULL;
     CmdManager* cmdManager;
@@ -45,32 +45,37 @@ int main(int argc, char** argv) {
 
     fd_client_r = openFifoToRead(cmdManager->workerInfo->serverFileName);
 
+    printf("fd client: %d\n", fd_client_r);
     /*receive from server the length of data the client will receive*/
-    readFromFifoPipe(fd_client_r, &dataLength, sizeof(int));
-
-    for (int i = 0; i < dataLength; i++){
-
+    readFromFifoPipe(fd_client_r, &dataLengthStr, sizeof(int) + 1);
+    printf("fd client: %d\n", fd_client_r);
+    //for (int i = 0; i < dataLengthStr - 1; i++){
+    int i = dataLengthStr;
+    while(i > 0){
+        printf("\n\n-------------%d---------------\n\n", i);
         /*receive the size of the incoming message from fifo*/
-        readFromFifoPipe(fd_client_r, &messageSize, sizeof(int));
-
+        readFromFifoPipe(fd_client_r, &messageSize, sizeof(int)+1);
+        printf("messageSize %d\n", messageSize);
         /*read actual message from fifo*/
         if (messageSize > arguments->bufferSize) {
-            message = malloc(sizeof(char) * messageSize + 1);
-            readFromFifoPipe(fd_client_r, message, messageSize);
+            message = malloc(sizeof(char) * (size_t)messageSize + 1);
+            readFromFifoPipe(fd_client_r, message, messageSize+1);
         }else{
             message = malloc(sizeof(char)*(arguments->bufferSize)+1);
-            readFromFifoPipe(fd_client_r, message,arguments->bufferSize);
+            readFromFifoPipe(fd_client_r, message,(arguments->bufferSize) + 1);
             messageSize = arguments->bufferSize;
         }
 
-        newNodeItem = (struct DirListItem*)malloc(sizeof(struct DirListItem));
+        newNodeItem = (DirListItem*)malloc(sizeof(struct DirListItem));
         newNodeItem->dirName = (char*)malloc(sizeof(char)*DIR_LEN);
         newNodeItem->dirPath = (char*)malloc(sizeof(char)*DIR_LEN);
 
-        strcpy(newNodeItem->dirName, message);
+        memcpy(newNodeItem->dirName, message, messageSize+1);
         strcpy(newNodeItem->dirPath, arguments->input_dir);
         strcat(newNodeItem->dirPath, "/");
         strcat(newNodeItem->dirPath, message);
+
+        printf("dir path : %s\n", newNodeItem->dirPath);
 
         newNode = nodeInit(newNodeItem);
         if(cmdManager->directoryList == NULL){
@@ -79,17 +84,18 @@ int main(int argc, char** argv) {
             push(newNode, cmdManager->directoryList);
         }
 
-        printf("Message Received: %s\n", newNodeItem->dirName);
-
+        printf("%d Message Received: %s\n", i, newNodeItem->dirName);
+        i = i - 1;
+        //printf("$$$$$$$$$$$$%d\n", dataLengthStr);
         free(message);
     }
 
     /*receive end of transmission from server*/
-    int noMessage = -1;
-    while (noMessage != 0){
-        readFromFifoPipe(fd_client_r, &noMessage, sizeof(int));
-    }
-
+    int noMessage = 0;
+/*    while (noMessage != -1){
+        readFromFifoPipe(fd_client_r, &noMessage, sizeof(int)+1);
+    }*/
+    printf("/////////////////////////////");
     //cmdManager = read_directory_list(cmdManager);
 
     /**
@@ -103,12 +109,12 @@ int main(int argc, char** argv) {
     strcpy(message, "Worker with pid has started...\n");
     messageSize = strlen(message);
     /*write the size of the name of the directory to follow to fifo*/
-    writeInFifoPipe(fd_client_w, &messageSize, sizeof(int));
+    writeInFifoPipe(fd_client_w, &messageSize, sizeof(int)+1);
     /*write the directory name to fifo*/
     if(messageSize > arguments->bufferSize)
-        writeInFifoPipe(fd_client_w, message, (size_t)messageSize);
+        writeInFifoPipe(fd_client_w, message, (size_t)messageSize+1);
     else
-        writeInFifoPipe(fd_client_w, message, arguments->bufferSize);
+        writeInFifoPipe(fd_client_w, message, (arguments->bufferSize)+1);
 
     fflush(stdout);
     free(arguments);
@@ -130,7 +136,7 @@ int main(int argc, char** argv) {
     //commandServer(cmdManager);
 
     fprintf(stdout, "exiting child\n");
-    close(fd_client_w);
     close(fd_client_r);
+    close(fd_client_w);
     exit(0);
 }
