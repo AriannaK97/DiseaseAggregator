@@ -13,13 +13,9 @@
 
 
 int main(int argc, char** argv){
-    char *fifoName;
     Node* currentNode;
     DirListItem* item;
-    //int fd_client_w = -1;
-    //int fd_client_r = -1;
     int messageSize;
-    char *listSize;
     char *message;
     pid_t pid;
 /*****************************************************************************
@@ -88,9 +84,6 @@ int main(int argc, char** argv){
             currentNode = currentNode->next;
         }
 
-        /*transmit end of sending data*/
-        int noMessage = -1;
-        //writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, &noMessage, sizeof(int)+1);
 
         /*start receiving*/
         make_fifo_name_client_server(pid, aggregatorServerManager->workersArray[i].workerFileName);
@@ -112,7 +105,6 @@ int main(int argc, char** argv){
     for (int j = 0; j < aggregatorServerManager->numOfWorkers; ++j) {
         close(aggregatorServerManager->workersArray[j].fd_client_w);
         close(aggregatorServerManager->workersArray[j].fd_client_r);
-        //wait(NULL);
     }
 
     DiseaseAggregatorServerManager(aggregatorServerManager);

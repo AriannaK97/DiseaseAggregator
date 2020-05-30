@@ -4,6 +4,7 @@
 #define  _GNU_SOURCE
 #include "../../header/data_io.h"
 #include "../../header/diseaseAggregator.h"
+#include "../../header/command_lib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -91,7 +92,7 @@ int getMaxFromFile(FILE* patientRecordsFile, int returnVal){
 }
 
 
-PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNum){
+PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplorerPointer){
     const char* delim = " ";
     int tokenCase = 0;
     char* token = NULL;
@@ -136,13 +137,14 @@ PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplor
 
     newPatient->country = malloc(DATA_SPACE*sizeof(char));
     strcpy(newPatient->country, fileExplorer->country);
-    if(!setDate(newPatient, fileExplorer->fileArray[fileExplorerPointer].fileName)){
+    if(!setDate(newPatient, fileExplorer->fileItemsArray[fileExplorerPointer].fileName)){
         fprintf(stderr, "Date Error!\n");
         free(newPatient);
         return NULL;
     }
     return newPatient;
 }
+
 
 bool setDate(PatientCase *patient, char *buffer){
     bool _ret = true;
@@ -162,11 +164,11 @@ bool setDate(PatientCase *patient, char *buffer){
     return _ret;
 }
 
-bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize, int fileExplorerPointer, int dirNum){
+bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize, int fileExplorerPointer){
     PatientCase* newPatient;
     Node* newNode;
 
-    newPatient = getPatient(buffer, NULL, 1, 1);
+    newPatient = getPatient(buffer, NULL, 1);
     newNode = nodeInit(newPatient);
 
     if(patientList->head == NULL){
@@ -192,17 +194,18 @@ CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
     cmdManager->diseaseHashTable = hashCreate(monitorInputArguments->diseaseHashtableNumOfEntries);
     cmdManager->bucketSize = monitorInputArguments->bucketSize;
     cmdManager->directoryList = NULL;
+    cmdManager->numOfDirectories = 0;
 
     return cmdManager;
 }
 
-CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNum){
+CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer){
     char* buffer = malloc(sizeof(char)*maxStrLength);
     PatientCase* newPatient = NULL;
     Node* newNode = NULL;
 
     while(getline(&buffer, &maxStrLength, patientRecordsFile) >= 0){
-        newPatient = getPatient(buffer, fileExplorer, fileExplorerPointer, dirNum);
+        newPatient = getPatient(buffer, fileExplorer, fileExplorerPointer);
         if(newPatient != NULL){
             if(strcmp(newPatient->type, "ENTRY")==0){
                 newNode = nodeInit(newPatient);
@@ -227,10 +230,94 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
         }
     }
 
+/*    fprintf(stdout, "%s\n", fileExplorer->fileItemsArray[fileExplorerPointer].fileName);
+    fprintf(stdout,"%s\n", fileExplorer->country);*/
+    fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats = getFileStats(cmdManager, fileExplorer->country, fileExplorer->fileItemsArray[fileExplorerPointer].dateFile);
+    fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases = cmdManager->numOfDiseases;
+/*    fprintf(stdout, "numOfDiseases: %d\n",fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases);
+    for (int i = 0; i < fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases; i++) {
+        fprintf(stdout,"%s\n0-20 : %d\n21-40 : %d\n41-60 : %d\n61+ : %d\n",
+               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->disease,
+               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[0],
+               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[1],
+               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[2],
+               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[3]);
+    }*/
+
     free(buffer);
     //printList(cmdManager->patientList);
     return cmdManager;
 }
+
+
+
+/**
+ * Collects the statistics for each disease in a country file
+ * */
+FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date){
+    HashElement iterator = hashITERATOR(manager->diseaseHashTable);
+    iterator.country = country;
+    iterator.date1 = date;
+    Node* listNode;
+    DiseaseNode* diseaseNode;
+
+    while(hashIterateValues(&iterator, COUNT_DISEASES) != NULL);
+    manager->numOfDiseases = iterator.counter;
+    iterator.fileStats = malloc(sizeof(FileDiseaseStats*) * manager->numOfDiseases);
+    int i = 0;
+    listNode = iterator.DiseaseList->head;
+    while (listNode!= NULL) {
+        diseaseNode = listNode->item;
+        iterator.fileStats[i] = malloc(sizeof(FileDiseaseStats));
+        iterator.fileStats[i]->disease = malloc(sizeof(char)*DATA_SPACE);
+        strcpy(iterator.fileStats[i]->disease, diseaseNode->disease);
+        iterator.fileStats[i]->AgeRangeCasesArray[0] = 0;
+        iterator.fileStats[i]->AgeRangeCasesArray[1] = 0;
+        iterator.fileStats[i]->AgeRangeCasesArray[2] = 0;
+        iterator.fileStats[i]->AgeRangeCasesArray[3] = 0;
+        i++;
+        listNode = listNode->next;
+    }
+    /*used for statistics collection*/
+    iterator.index = 0;
+    iterator.elem = manager->diseaseHashTable->table[0];
+    while(hashIterateValues(&iterator, GET_FILE_STATS) != NULL);
+
+    AgeRangeStruct* item;
+    if(iterator.AgeRangeNodes != NULL){
+        for (int j = 0; j < manager->numOfDiseases; ++j) {
+            listNode = iterator.AgeRangeNodes->head;
+            while (listNode != NULL){
+                item = listNode->item;
+                if(strcmp(item->disease, iterator.fileStats[j]->disease)==0 && item->data <= 20){
+                    iterator.fileStats[j]->AgeRangeCasesArray[0] = item->dataSum;
+                } else if(strcmp(item->disease, iterator.fileStats[j]->disease)==0 && item->data <= 40){
+                    iterator.fileStats[j]->AgeRangeCasesArray[1] = item->dataSum;
+                }else if(strcmp(item->disease, iterator.fileStats[j]->disease)==0 && item->data <= 60){
+                    iterator.fileStats[j]->AgeRangeCasesArray[2] = item->dataSum;
+                }else if(strcmp(item->disease, iterator.fileStats[j]->disease)==0 && item->data <= 120){
+                    iterator.fileStats[j]->AgeRangeCasesArray[3] = item->dataSum;
+                }
+
+                    listNode = listNode->next;
+            }
+        }
+    }
+
+/*    fprintf(stdout, "numOfDiseases: %d\n",manager->numOfDiseases);
+    for (i = 0; i < manager->numOfDiseases; i++) {
+        fprintf(stdout,"%s\n0-20 : %d\n21-40 : %d\n41-60 : %d\n61+ : %d\n",
+                iterator.fileStats[i]->disease,
+                iterator.fileStats[i]->AgeRangeCasesArray[0],
+                iterator.fileStats[i]->AgeRangeCasesArray[1],
+                iterator.fileStats[i]->AgeRangeCasesArray[2],
+                iterator.fileStats[i]->AgeRangeCasesArray[3]);
+    }*/
+
+
+    return iterator.fileStats;
+}
+
 
 bool dateInputValidation(Date* entryDate, Date* exitDate){
     if (entryDate->day == exitDate->day && entryDate->month == exitDate->month && entryDate->year < exitDate->year)
@@ -255,13 +342,14 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
     FILE* entry_file;
     DIR* FD;
     DirListItem* item;
-    FileExplorer* fileExplorer;
     int numOfFileInSubDirectory = 0;
-    int arraySize;
+    //int arraySize;
     int dirNum = 0;
 
+    cmdManager->fileExplorer = malloc(sizeof(FileExplorer*) * cmdManager->numOfDirectories);
+
     while (node != NULL) {
-        fileExplorer = malloc(sizeof(FileExplorer));
+        cmdManager->fileExplorer[dirNum] = malloc(sizeof(FileExplorer));
         item = (DirListItem*)node->item;
 
         /* Scanning the in directory */
@@ -270,33 +358,29 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
             exit(1);
         }
 
-        arraySize = countFilesInDirectory(FD);
-        fileExplorer->country = malloc(sizeof(char) * DIR_LEN);
-        fileExplorer->successfulEntries = 0;
-        fileExplorer->failedEntries = 0;
-        fileExplorer->fileArray = (FileItem*) malloc(sizeof(FileItem) * arraySize);
-        fileExplorer->fileArray = createFileArray(FD, item, arraySize);
-        strcpy(fileExplorer->country, item->dirName);
+        cmdManager->fileExplorer[dirNum]->fileArraySize = countFilesInDirectory(FD);
+        cmdManager->fileExplorer[dirNum]->country = malloc(sizeof(char) * DIR_LEN);
+        cmdManager->fileExplorer[dirNum]->successfulEntries = 0;
+        cmdManager->fileExplorer[dirNum]->failedEntries = 0;
+        cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem*) malloc(sizeof(FileItem) * (cmdManager->fileExplorer[dirNum]->fileArraySize));
+        cmdManager->fileExplorer[dirNum]->fileItemsArray = createFileArray(FD, item, cmdManager->fileExplorer[dirNum]->fileArraySize);
+        strcpy(cmdManager->fileExplorer[dirNum]->country, item->dirName);
 
-        for (int i = 0; i < arraySize; i++) {
-            entry_file = fopen(fileExplorer->fileArray[i].filePath, "r");
+        for (int i = 0; i < cmdManager->fileExplorer[dirNum]->fileArraySize; i++) {
+            entry_file = fopen(cmdManager->fileExplorer[dirNum]->fileItemsArray[i].filePath, "r");
             if (entry_file == NULL) {
-                fprintf(stderr, "Error : Failed to open entry file %s - %s\n", fileExplorer->fileArray[i].filePath, strerror(errno));
+                fprintf(stderr, "Error : Failed to open entry file %s %s - %s\n", cmdManager->fileExplorer[dirNum]->fileItemsArray[i].filePath, cmdManager->fileExplorer[dirNum]->country, strerror(errno));
                 exit(1);
             }
 
             cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
-                                         fileExplorer, i, dirNum);
+                                         cmdManager->fileExplorer[dirNum] , i);
             fclose(entry_file);
             numOfFileInSubDirectory++;
         }
         dirNum++;
         node = node->next;
     }
-/*    printf("kjnweofnwnwol");
-    if(cmdManager->patientList->itemCount != 0)
-        printf("%d\n\n\n\n", cmdManager->patientList->itemCount);
-    printList(cmdManager->patientList);*/
 
     return cmdManager;
 }

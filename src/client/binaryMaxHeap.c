@@ -6,6 +6,7 @@
 #include <string.h>
 #include "../../header/binaryMaxHeap.h"
 #include "../../header/hashTable.h"
+#include "../../header/diseaseAggregator.h"
 
 Heap* createHeap(){
     Heap* heapTree = malloc(sizeof(Heap));
@@ -14,14 +15,14 @@ Heap* createHeap(){
     return heapTree;
 }
 
-HeapNode* createHeapNode(char* data, int dataSum){
+HeapNode* createHeapNode(int data, int dataSum){
     HeapNode* heapNode =  malloc(sizeof(HeapNode));
     heapNode->data = malloc(sizeof(char)*DATA_SPACE);
     heapNode->right = NULL;
     heapNode->left = NULL;
     heapNode->parent = NULL;
     heapNode->dataSum = dataSum;
-    strcpy(heapNode->data, data);
+    heapNode->data = data;
     return heapNode;
 }
 
@@ -171,12 +172,23 @@ void deleteNodeFromHeap(HeapNode* node){
     free(node);
 }
 
-HeapNode* popHeapNode(Heap* heapTree){
+HeapNode* popHeapNode(Heap* heapTree, FileDiseaseStats* fileStats){
     if(heapTree->numOfNodes <= 0){
         return NULL;
     }
     if(heapTree->numOfNodes == 1){
-        fprintf(stdout, "%s %d\n", heapTree->root->data, heapTree->root->dataSum);
+        if(heapTree->root->data <= 20)
+            fileStats->AgeRangeCasesArray[0] = heapTree->root->dataSum;
+            //fprintf(stdout, "Age range 0-20 years: %d\n", heapTree->root->dataSum);
+        else if(heapTree->root->data <= 40)
+            fileStats->AgeRangeCasesArray[1] = heapTree->root->dataSum;
+            //fprintf(stdout, "Age range 21-40 years: %d\n", heapTree->root->dataSum);
+        else if(heapTree->root->data <= 60)
+            fileStats->AgeRangeCasesArray[2] = heapTree->root->dataSum;
+            //fprintf(stdout, "Age range 41-60 years: %d\n", heapTree->root->dataSum);
+        else if(heapTree->root->data <= 120)
+            fileStats->AgeRangeCasesArray[3] = heapTree->root->dataSum;
+            //fprintf(stdout, "Age range 61+ years: %d\n", heapTree->root->dataSum);
         heapTree->numOfNodes--;
         return heapTree->root;
     }

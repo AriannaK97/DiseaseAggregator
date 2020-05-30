@@ -6,7 +6,6 @@
 #define DISEASEMONITOR_STRUCTS_H
 
 
-
 typedef struct BucketEntry BucketEntry;
 typedef struct Bucket Bucket;
 typedef struct HashTable HashTable;
@@ -47,9 +46,12 @@ typedef struct CmdManager{
     struct HashTable* diseaseHashTable;
     struct HashTable* countryHashTable;
     struct WorkerInfo* workerInfo;
+    struct FileExplorer** fileExplorer;
     List* directoryList;
     size_t bucketSize;
+    int numOfDirectories;
     char *input_dir;
+    int numOfDiseases; /*auxiliary for statistics collection*/
 }CmdManager;
 
 typedef struct MonitorInputArguments{
@@ -59,5 +61,15 @@ typedef struct MonitorInputArguments{
     size_t bufferSize;
     char *input_dir;
 }MonitorInputArguments;
+
+typedef struct AgeRangeStruct{
+    int data;
+    int dataSum;
+    char* disease;
+}AgeRangeStruct;
+
+typedef struct DiseaseNode{
+    char* disease;
+}DiseaseNode;
 
 #endif //DISEASEMONITOR_STRUCTS_H

@@ -19,7 +19,6 @@ int openFifoToRead(char *fileName){
         perror("fifo open problem");
         exit(3);
     }
-    printf("trying to open ffs %d\n", fd_client_r);
     return fd_client_r;
 }
 
@@ -37,7 +36,6 @@ void readFromFifoPipe(int fd_client_r, void* message, size_t bufferSize){
         perror("problem in reading");
         exit(5);
     }
-    printf("read from pipe %d\n", fd_client_r);
 }
 
 void writeInFifoPipe(int fd_client_w, void* message , size_t bufferSize){

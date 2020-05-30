@@ -3,11 +3,11 @@ FLAGS   =	-Wall	-g	-c	-std=c99
 
 all: diseaseAggregator_server diseaseMonitor_client
 
-diseaseAggregator_server:   main.o  diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o	communication.o
-	$(CC)   -o diseaseAggregator_server main.o diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	binaryMaxHeap.o	communication.o
+diseaseAggregator_server:   main.o  diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	communication.o
+	$(CC)   -o diseaseAggregator_server main.o diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	communication.o
 
-diseaseMonitor_client:  diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o  binaryMaxHeap.o	diseaseAggregator.o	communication.o
-	$(CC)   -o	diseaseMonitor_client	diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o  binaryMaxHeap.o	diseaseAggregator.o	communication.o
+diseaseMonitor_client:  diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o	diseaseAggregator.o	communication.o
+	$(CC)   -o	diseaseMonitor_client	diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o	diseaseAggregator.o	communication.o
 
 main.o: src/server/main.c
 	$(CC)	$(FLAGS)	src/server/main.c
@@ -26,9 +26,6 @@ redBlackTree.o:    src/client/redBlackTree.c
 
 command_lib.o:    src/client/command_lib.c
 	$(CC)	$(FLAGS)	src/client/command_lib.c
-
-binaryMaxHeap.o:    src/client/binaryMaxHeap.c
-	$(CC)	$(FLAGS)	src/client/binaryMaxHeap.c
 
 diseaseAggregator.o:    src/server/diseaseAggregator.c
 	$(CC)	$(FLAGS)	src/server/diseaseAggregator.c

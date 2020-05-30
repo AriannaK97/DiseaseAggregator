@@ -56,84 +56,62 @@ void diseaseFrequency(CmdManager* manager, char* virusName, Date* date1, Date* d
     fprintf(stdout, "\n~$:");
 }
 
-/**
- * For the specified country the application prints the diseases with the top k
- * number of diseased cases during the period [date1, date2], if that is specified.
- * Cmd Args: k country [date1, date2]
- * */
-/*void topk_Diseases(CmdManager* manager, int k, char* country, Date* date1, Date* date2){
-    HashElement iterator = hashITERATOR(manager->countryHashTable);
-    iterator.country = country;
-    Heap* maxHeap = createHeap();
-    if(date1 != NULL && date2 != NULL) {
-        iterator.date1 = date1;
-        iterator.date2 = date2;
-        while (hashIterateValues(&iterator, GET_HEAP_NODES_COUNTRY_DATES) != NULL);
-    }else {
-        while (hashIterateValues(&iterator, GET_HEAP_NODES_COUNTRY) != NULL);
-    }
-    if(iterator.heapNodes == NULL || iterator.heapNodes->head == NULL){
-        //fprintf(stdout, "There are no disease cases for %s\n~$:", country);
-        fprintf(stdout, "error\n~$:");
-        freeHeapTree(maxHeap);
-    }else{
-        Node* currentNode = iterator.heapNodes->head;
-        while(currentNode != NULL){
-            maxHeap->root = insertHeap(maxHeap, (HeapNode*)currentNode->item);
-            maxHeap->numOfNodes += 1;
-            currentNode = currentNode->next;
-        }
-        if(k > maxHeap->numOfNodes){
-            k = maxHeap->numOfNodes;
-        }
-        while (k > 0){
-            popHeapNode(maxHeap);
-            k--;
-        }
-        fprintf(stdout, "~$:");
-        freeHeapTree(maxHeap);
-        heapListMemoryDeallock(iterator.heapNodes);
-    }
-}*/
-
 
 /**
  * For the specified country and disease the application prints the age categories with the top k
  * number of diseased cases of the given disease during the period date1, date2, if that is specified.
  * Cmd Args: k country disease date1, date2
  * */
-void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease ,Date* date1, Date* date2){
+void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , Date* date1, Date* date2, FileDiseaseStats* fileStats){
     HashElement iterator = hashITERATOR(manager->diseaseHashTable);
     iterator.country = country;
     iterator.virus = disease;
-    Heap* maxHeap = createHeap();
+    //Heap* maxHeap = createHeap();
     if(date1 != NULL && date2 != NULL) {
         iterator.date1 = date1;
         iterator.date2 = date2;
-        while (hashIterateValues(&iterator, GET_HEAP_NODES_VIRUS_DATES) != NULL);
+        while (hashIterateValues(&iterator, GET_HEAP_NODES_AGE_RANGE_DATES) != NULL);
+    }else {
+        /*used for statistics collection where the dates are redundant*/
+        while(hashIterateValues(&iterator, GET_HEAP_NODES_AGE_RANGE) != NULL);
     }
-    if(iterator.heapNodes == NULL || iterator.heapNodes->head == NULL){
+    if(iterator.AgeRangeNodes == NULL || iterator.AgeRangeNodes->head == NULL){
         //fprintf(stdout, "There are no countries with cases of %s\n~$:", disease);
         fprintf(stdout, "error\n~$:");
-        freeHeapTree(maxHeap);
+        //freeHeapTree(maxHeap);
     }else{
-        Node* currentNode = iterator.heapNodes->head;
+        Node* currentNode = iterator.AgeRangeNodes->head;
+        AgeRangeStruct* item;
         while(currentNode != NULL){
-            maxHeap->root = insertHeap(maxHeap, (HeapNode*)currentNode->item);
-            maxHeap->numOfNodes += 1;
+            item = currentNode->item;
+            if (item->data <= 20){
+                fileStats->AgeRangeCasesArray[0] = item->dataSum;
+            }else if(item->data <= 40){
+                fileStats->AgeRangeCasesArray[1] = item->dataSum;
+            }else if(item->data <= 60){
+                fileStats->AgeRangeCasesArray[2] = item->dataSum;
+            }else if(item->data <= 120){
+                fileStats->AgeRangeCasesArray[3] = item->dataSum;
+            }
             currentNode = currentNode->next;
         }
-        if(k > maxHeap->numOfNodes){
-            k = maxHeap->numOfNodes;
+        if(k > 4){
+            k = 4;
         }
+
         while (k > 0){
-            maxHeap->root = popHeapNode(maxHeap);
+            if (k==0){
+                fprintf(stdout, "Age range 0-20: %d\n", fileStats->AgeRangeCasesArray[k]);
+            }else if(k==1){
+                fprintf(stdout, "Age range 21-40: %d\n", fileStats->AgeRangeCasesArray[k]);
+            }else if(k==2){
+                fprintf(stdout, "Age range 41-60: %d\n", fileStats->AgeRangeCasesArray[k]);
+            }else if(k==3){
+                fprintf(stdout, "Age range 60+: %d\n", fileStats->AgeRangeCasesArray[k]);
+            }
             k--;
         }
         fprintf(stdout, "~$:");
-
-        freeHeapTree(maxHeap);
-        heapListMemoryDeallock(iterator.heapNodes);
     }
 }
 
@@ -303,8 +281,6 @@ void commandServer(CmdManager* manager, char* line){
     char* simpleCommand = NULL;
     //char* line = NULL;
 
-    size_t length = 0;
-
     //fprintf(stdout,"~$:");
     //while (getline(&line, &length, stdin) != EOF){
 
@@ -367,7 +343,7 @@ void commandServer(CmdManager* manager, char* line){
                 date2->day = atoi(strtok(arg4, "-"));
                 date2->month = atoi(strtok(NULL, "-"));
                 date2->year = atoi(strtok(NULL, "-"));
-                topk_AgeRanges(manager, k, country, disease, date1, date2);
+                topk_AgeRanges(manager, k, country, disease, date1, date2, NULL);
                 free(date1);
                 free(date2);
 

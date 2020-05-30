@@ -236,7 +236,6 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
 
     int counter = 0;
     Node* listNode;
-    char* age;
 
     counter += rbNodeCounter_BetweenDates(root->left, nil, operationCall, hashIterator);
     PatientCase* patient = root->listNodeEntry->item;
@@ -263,20 +262,18 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
     else if(operationCall == GET_HEAP_NODES_AGE_RANGE_DATES){
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
         && strcmp(patient->country, hashIterator->country) == 0){
-
-            age = malloc(sizeof(char)*DATA_SPACE);
-            sprintf(age, "%d", patient->age);
-            if(hashIterator->heapNodes == NULL){
-                HeapNode* newNode = createHeapNode(age, 1);
+            /*create a list o AgeRangeNodes - later these nodes will be used to create
+             * a heap-tree in commandLib
+             **/
+            if(hashIterator->AgeRangeNodes == NULL){
+                AgeRangeStruct* newNode = createAgeRangeNode(patient->age, 1, patient->virus);
                 listNode = nodeInit(newNode);
-                hashIterator->heapNodes = linkedListInit(listNode);
-            }else if(updateListVirusSum(hashIterator->heapNodes, patient->country) == false){
-                HeapNode* newNode = createHeapNode(age, 1);
+                hashIterator->AgeRangeNodes = linkedListInit(listNode);
+            }else if(updateListVirusSum(hashIterator->AgeRangeNodes, patient->age, patient->virus) == false){
+                AgeRangeStruct* newNode = createAgeRangeNode(patient->age, 1, patient->virus);
                 listNode = nodeInit(newNode);
-                push(listNode, hashIterator->heapNodes);
+                push(listNode, hashIterator->AgeRangeNodes);
             }
-            free(age);
-
         }
     }
     counter += rbNodeCounter_BetweenDates(root->right, nil, operationCall, hashIterator);
@@ -292,7 +289,6 @@ int rbNodeCounter(rbNode* root, rbNode* nil, int operationCall, HashElement* has
 
     int counter = 0;
     Node* listNode;
-    char* age = malloc(sizeof(char)*DATA_SPACE);
 
     counter += rbNodeCounter(root->left, nil, operationCall, hashIterator);
     PatientCase *patient = root->listNodeEntry->item;
@@ -301,6 +297,29 @@ int rbNodeCounter(rbNode* root, rbNode* nil, int operationCall, HashElement* has
             counter++;
     }else if (operationCall == COUNT_ALL) {
         counter++;
+    }else if(operationCall == GET_HEAP_NODES_AGE_RANGE || operationCall == GET_FILE_STATS){
+        if((strcmp(patient->country, hashIterator->country) == 0) &&
+           ((patient->exitDate->year == hashIterator->date1->year && patient->exitDate->day == hashIterator->date1->day && patient->exitDate->month == hashIterator->date1->month) ||
+            (patient->entryDate->year == hashIterator->date1->year && patient->entryDate->day == hashIterator->date1->day && patient->entryDate->month == hashIterator->date1->month))){
+            /*create a list o AgeRangeNodes - later these nodes will be used to populate
+             * a size 4 array of AgeRangeNodes
+             **/
+            if(hashIterator->AgeRangeNodes == NULL){
+                AgeRangeStruct* newNode = createAgeRangeNode(patient->age, 1, patient->virus);
+                listNode = nodeInit(newNode);
+                hashIterator->AgeRangeNodes = linkedListInit(listNode);
+            }else if(updateListVirusSum(hashIterator->AgeRangeNodes, patient->age, patient->virus) == false){
+                AgeRangeStruct* newNode = createAgeRangeNode(patient->age, 1, patient->virus);
+                listNode = nodeInit(newNode);
+                push(listNode, hashIterator->AgeRangeNodes);
+            }
+        }
+    }else if(operationCall == COUNT_DISEASES){
+        if((strcmp(patient->country, hashIterator->country) == 0) &&
+        ((patient->exitDate->year == hashIterator->date1->year && patient->exitDate->day == hashIterator->date1->day && patient->exitDate->month == hashIterator->date1->month) ||
+        (patient->entryDate->year == hashIterator->date1->year && patient->entryDate->day == hashIterator->date1->day && patient->entryDate->month == hashIterator->date1->month))){
+            counter++;
+        }
     }
     counter += rbNodeCounter(root->right, nil, operationCall, hashIterator);
 

@@ -5,9 +5,12 @@
 #ifndef DISEASEAGGREGATOR_DISEASEAGGREGATOR_H
 #define DISEASEAGGREGATOR_DISEASEAGGREGATOR_H
 
+#define  _POSIX_C_SOURCE 200809L
+
 #include <signal.h>
 #include "list_lib.h"
 #include "structs.h"
+#include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include "../header/data_io.h"
@@ -30,17 +33,25 @@ typedef struct DirListItem{
     char *dirPath;
 }DirListItem;
 
+typedef struct FileDiseaseStats{
+    char* disease;
+    int AgeRangeCasesArray[4];
+}FileDiseaseStats;
+
 typedef struct FileItem{
     char* filePath;
     char* fileName;
     Date* dateFile;
+    FileDiseaseStats** fileDiseaseStats;
+    int numOfDiseases;
 }FileItem;
 
 typedef struct FileExplorer{
     char* country;  /*current directory*/
     int failedEntries;
     int successfulEntries;
-    FileItem* fileArray;
+    FileItem* fileItemsArray;
+    int fileArraySize;
 }FileExplorer;
 
 typedef struct AggregatorInputArguments{

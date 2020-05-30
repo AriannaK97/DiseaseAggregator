@@ -17,12 +17,14 @@
 #define COUNTRY_HT_Entries_NUM 10   /*size of countryHashTable*/
 #define BUFFER_SIZE 52              /*minimum buffer size for reading over pipes*/
 
+typedef struct FileDiseaseStats FileDiseaseStats;
+
 enum defAttribute{
     LINE_LENGTH,
     LINE_BUFFER_SIZE,
 };
 
-PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNUm);
+PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplorerPointer);
 
 FILE* openFile(char *inputFile);
 
@@ -30,9 +32,9 @@ MonitorInputArguments* getMonitorInputArgs(int argc, char** argv);
 
 int getMaxFromFile(FILE* patientRecordsFile, int returnVal);
 
-bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize, int fileExplorerPointer, int dirNum);
+bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize, int fileExplorerPointer);
 
-CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer, int dirNUm);
+CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer);
 
 bool dateInputValidation(Date* entryDate, Date* exitDate);
 
@@ -45,5 +47,7 @@ void deallockFileExplorer(FileExplorer *fileExplorer);
 CmdManager* read_directory_list(CmdManager* cmdManager);
 
 int compare (const void * a, const void * b);
+
+FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date);
 
 #endif //DISEASEMONITOR_DATA_IO_H

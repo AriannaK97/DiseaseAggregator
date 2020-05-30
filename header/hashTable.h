@@ -10,7 +10,7 @@
 #include <string.h>
 #include "list_lib.h"
 #include "redBlackTree.h"
-#include "binaryMaxHeap.h"
+#include "diseaseAggregator.h"
 
 #define DATA_SPACE 32
 #define DIR_LEN 256
@@ -22,14 +22,14 @@
 #define COUNT_ALL_BETWEEN_DATES 5
 #define COUNT_ALL_BETWEEN_DATES_WITH_VIRUS 6
 #define COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY 7
-#define GET_HEAP_NODES_VIRUS 8
-#define GET_HEAP_NODES_AGE_RANGE_DATES 9
-#define GET_HEAP_NODES_VIRUS_DATES 10
-#define GET_HEAP_NODES_COUNTRY_DATES 11
-#define COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT  12
-#define COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE 13
-#define GET_HEAP_NODES_AGE_RANGE 14
+#define GET_HEAP_NODES_AGE_RANGE_DATES 8
+#define COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT  9
+#define COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE 10
+#define GET_HEAP_NODES_AGE_RANGE 11
+#define GET_FILE_STATS 12
+#define COUNT_DISEASES 13
 
+typedef struct FileDiseaseStats FileDiseaseStats;
 
 typedef struct BucketEntry{
     char* data;
@@ -62,12 +62,15 @@ typedef struct HashElement{
     Date* date2;
     char* country; //for operations requiring country
     char* virus;   //for operations requiring the virus for the search
-    List* heapNodes;    //nodes collected for the heap
+    List* AgeRangeNodes;    //nodes collected for the heap
+    FileDiseaseStats** fileStats; //array for statistics
+    List* DiseaseList;
+    int fileStatsDiseasePointer;
 }HashElement;
 
 
 // Inititalize hashtable iterator on hashtable 'ht'
-#define hashITERATOR(ht) {ht, 0, ht->table[0], 0, 0, 0, 0, 0}
+#define hashITERATOR(ht) {ht, 0, ht->table[0], 0, 0, 0, 0, 0, 0, 0, 0}
 
 unsigned long hash(unsigned long x);
 

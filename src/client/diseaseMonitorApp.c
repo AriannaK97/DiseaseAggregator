@@ -45,14 +45,13 @@ int main(int argc, char** argv) {
 
     fd_client_r = openFifoToRead(cmdManager->workerInfo->serverFileName);
 
-    printf("fd client: %d\n", fd_client_r);
     /*receive from server the length of data the client will receive*/
     readFromFifoPipe(fd_client_r, &dataLengthStr, sizeof(int) + 1);
-    printf("fd client: %d\n", fd_client_r);
-    //for (int i = 0; i < dataLengthStr - 1; i++){
-    int i = dataLengthStr;
-    while(i > 0){
-        printf("\n\n-------------%d---------------\n\n", i);
+
+    cmdManager->numOfDirectories = dataLengthStr;
+    int ghostBugResolver = dataLengthStr;
+    while(ghostBugResolver > 0){
+        printf("\n\n-------------%d---------------\n\n", ghostBugResolver);
         /*receive the size of the incoming message from fifo*/
         readFromFifoPipe(fd_client_r, &messageSize, sizeof(int)+1);
         printf("messageSize %d\n", messageSize);
@@ -84,19 +83,36 @@ int main(int argc, char** argv) {
             push(newNode, cmdManager->directoryList);
         }
 
-        printf("%d Message Received: %s\n", i, newNodeItem->dirName);
-        i = i - 1;
-        //printf("$$$$$$$$$$$$%d\n", dataLengthStr);
+        printf("%d Message Received: %s\n", ghostBugResolver, newNodeItem->dirName);
+        ghostBugResolver = ghostBugResolver - 1;
         free(message);
     }
 
-    /*receive end of transmission from server*/
-    int noMessage = 0;
-/*    while (noMessage != -1){
-        readFromFifoPipe(fd_client_r, &noMessage, sizeof(int)+1);
+        /*for debug reasons*/
+/*    cmdManager->numOfDirectories = 1;
+    newNodeItem = (DirListItem*)malloc(sizeof(struct DirListItem));
+    newNodeItem->dirName = (char*)malloc(sizeof(char)*DIR_LEN);
+    newNodeItem->dirPath = (char*)malloc(sizeof(char)*DIR_LEN);
+
+    memcpy(newNodeItem->dirName, "Australia", 256);
+    strcpy(newNodeItem->dirPath, "/home/linuxuser/CLionProjects/DiseaseAggregator/input_dir/Australia");
+
+    printf("dir path : %s\n", newNodeItem->dirPath);
+
+    newNode = nodeInit(newNodeItem);
+    if(cmdManager->directoryList == NULL){
+        cmdManager->directoryList = linkedListInit(newNode);
+    } else{
+        push(newNode, cmdManager->directoryList);
     }*/
+
+
     printf("/////////////////////////////");
-    //cmdManager = read_directory_list(cmdManager);
+    cmdManager = read_directory_list(cmdManager);
+
+
+    //fprintf(stdout, "")
+
 
     /**
      * Send success message back to parent through clients fifo

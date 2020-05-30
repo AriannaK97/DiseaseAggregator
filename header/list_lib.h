@@ -36,10 +36,12 @@ bool compareListItemPatient(PatientCase* patient, char* key);
 
 void nodeItemDeallock(PatientCase* item);
 
-bool updateListVirusSum(List* linkedList, char* key);
+bool updateListVirusSum(List* linkedList, int key, char* disease);
+
+AgeRangeStruct* createAgeRangeNode(int data, int dataSum, char* disease);
 
 void heapListMemoryDeallock(List* linkedList);
 
-void printListNodeHeap(Node* node);
+DiseaseNode* createDiseaseNode(char* disease);
 
 #endif //DISEASEMONITOR_LIST_LIB_H

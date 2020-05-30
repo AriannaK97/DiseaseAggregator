@@ -3,6 +3,7 @@
 //
 
 #include <sys/wait.h>
+#include <stdio.h>
 #include "../../header/diseaseAggregator.h"
 #include "../../header/command_lib.h"
 #include "../../header/communication.h"
@@ -147,6 +148,7 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
 
         fileArray[filePointer].filePath = malloc(sizeof(char) * DIR_LEN);
         fileArray[filePointer].fileName = malloc(sizeof(char) * DIR_LEN);
+        fileArray[filePointer].numOfDiseases = 0;
 
         strcpy(subDirPath, item->dirPath);
         strcat(subDirPath, "/");
@@ -160,7 +162,7 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
         strcpy(fileArray[filePointer].filePath, subDirPath);
         strcpy(fileArray[filePointer].fileName, in_file->d_name);
 
-        //fprintf(stdout, "%s \n", fileArray[filePointer].filePath);
+        //fprintf(stdout, "%s \n", fileItemsArray[filePointer].filePath);
 
         filePointer++;
     }
@@ -251,11 +253,12 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerMan
                         writeInFifoPipe(fd_client_w, command, aggregatorServerManager->bufferSize);
 
                     /*send size of the arguments to be send next*/
-/*                    writeInFifoPipe(fd_client_w, &argLength, sizeof(int));
+                    //printf("arguments: %s\n")
+                    writeInFifoPipe(fd_client_w, &argLength, sizeof(int));
                     if(argLength > aggregatorServerManager->bufferSize)
                         writeInFifoPipe(fd_client_w, arguments, (size_t)argLength);
                     else
-                        writeInFifoPipe(fd_client_w, arguments, aggregatorServerManager->bufferSize);*/
+                        writeInFifoPipe(fd_client_w, arguments, aggregatorServerManager->bufferSize);
 
                 }
             }
@@ -269,6 +272,7 @@ void nodeDirListItemDeallock(DirListItem* dirListItem){
     free(dirListItem->dirName);
     free(dirListItem);
 }
+
 
 void freeAggregatorManager(AggregatorServerManager *aggregatorManager){
     Node* listNode;

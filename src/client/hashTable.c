@@ -221,6 +221,7 @@ void* hashGet(HashTable* hTable, unsigned long key){
 int iterateBucketData(Bucket* bucket, int operationCall, HashElement* hashIterator){
     BucketEntry *iterator = bucket->entry;
     int counter = 0;
+    Node* listNode;
 
     for(int i = 0; i < bucket->numOfEntries; i++){
         if(iterator[i].tree != NULL){
@@ -255,8 +256,26 @@ int iterateBucketData(Bucket* bucket, int operationCall, HashElement* hashIterat
                     counter += countPatients_BetweenDates((rbTree*)iterator[i].tree, operationCall, hashIterator);
                 }
 
+            }else if(operationCall == COUNT_DISEASES){
+                counter += countPatients((rbTree *) iterator[i].tree, operationCall, hashIterator);
+                if(counter > 0){
+                    if(hashIterator->DiseaseList == NULL){
+                        DiseaseNode* newNode = createDiseaseNode(iterator[i].data);
+                        listNode = nodeInit(newNode);
+                        hashIterator->DiseaseList = linkedListInit(listNode);
+                        hashIterator->DiseaseList->itemCount++;
+                    }else{
+                        DiseaseNode* newNode = createDiseaseNode(iterator[i].data);
+                        listNode = nodeInit(newNode);
+                        push(listNode, hashIterator->DiseaseList);
+                        hashIterator->DiseaseList->itemCount++;
+                    }
+                    hashIterator->counter += 1;
+                    counter = 0;
+                }
+            }else if (operationCall == GET_FILE_STATS){
+                    counter += countPatients((rbTree *) iterator[i].tree, operationCall, hashIterator);
             }else if(operationCall == COUNT_HOSPITALISED || operationCall == COUNT_ALL){
-
                 counter += countPatients((rbTree *) iterator[i].tree, operationCall,NULL);
                 if(strlen(iterator[i].data)!=0)
                     fprintf(stdout, "%s %d\n", iterator[i].data, counter);

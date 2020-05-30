@@ -16,14 +16,14 @@ typedef struct Heap{
 }Heap;
 
 typedef struct HeapNode{
-    char* data;
+    int data;
     int dataSum;
     struct HeapNode* left;
     struct HeapNode* right;
     struct HeapNode* parent;
 }HeapNode;
 
-
+typedef struct FileDiseaseStats FileDiseaseStats;
 
 Heap* getSubHeapTree(Heap* primalTree, HeapNode* newRoot);
 
@@ -37,7 +37,7 @@ HeapNode* getParent(HeapNode* A);
 
 void maxHeapify(HeapNode* A);
 
-HeapNode* createHeapNode(char* data, int dataSum);
+HeapNode* createHeapNode(int data, int dataSum);
 
 void swapValues(HeapNode* node1, HeapNode* node2);
 
@@ -59,7 +59,7 @@ void freeHeapTree(Heap* heapTree);
 
 void freeNode(HeapNode* node);
 
-HeapNode* popHeapNode(Heap* heapTree);
+HeapNode* popHeapNode(Heap* heapTree, FileDiseaseStats* fileStats);
 
 HeapNode* getLastLeaf(Heap* heapTree);
 

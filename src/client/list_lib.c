@@ -118,12 +118,21 @@ bool searchNodeForRecordID_ExitDateUpdate(List* linkedList, char* key, Date* exi
     return false;
 }
 
-bool updateListVirusSum(List* linkedList, char* key){
+bool updateListVirusSum(List* linkedList, int key, char* disease){
     Node* node = linkedList->head;
-    HeapNode* currentContent;
+    AgeRangeStruct* currentContent;
     while (node != NULL){
         currentContent = node->item;
-        if (strcmp(currentContent->data, key) == 0){
+        if (currentContent->data <= 20 && key <= 20 && strcmp(currentContent->disease, disease) == 0){
+            currentContent->dataSum++;
+            return true;
+        }else if(currentContent->data <= 40 && key <= 40 && strcmp(currentContent->disease, disease) == 0){
+            currentContent->dataSum++;
+            return true;
+        }else if(currentContent->data <= 60 && key <= 60 && strcmp(currentContent->disease, disease) == 0){
+            currentContent->dataSum++;
+            return true;
+        }else if(currentContent->data <= 120 && key <=120 && strcmp(currentContent->disease, disease) == 0){
             currentContent->dataSum++;
             return true;
         }
@@ -132,6 +141,21 @@ bool updateListVirusSum(List* linkedList, char* key){
     return false;
 }
 
+AgeRangeStruct* createAgeRangeNode(int data, int dataSum, char* disease){
+    AgeRangeStruct* ageRangeNode =  malloc(sizeof(AgeRangeStruct));
+    ageRangeNode->disease = malloc(sizeof(char)*DATA_SPACE);
+    strcpy(ageRangeNode->disease, disease);
+    ageRangeNode->dataSum = dataSum;
+    ageRangeNode->data = data;
+    return ageRangeNode;
+}
+
+DiseaseNode* createDiseaseNode(char* disease){
+    DiseaseNode* diseaseNode = malloc(sizeof(DiseaseNode));
+    diseaseNode->disease = malloc(sizeof(char)*strlen(disease));
+    strcpy(diseaseNode->disease, disease);
+    return diseaseNode;
+}
 
 
 /**
@@ -182,13 +206,6 @@ void printListNode(Node* node){
             patient->exitDate->day, patient->exitDate->month, patient->exitDate->year);
 }
 
-void printListNodeHeap(Node* node){
-    if(node == NULL){
-        return;
-    }
-    HeapNode* heapnode = node->item;
-    fprintf(stdout,"%s: %d\n", heapnode->data, heapnode->dataSum);
-}
 
 PatientCase* getPatientFromList(List* linkedList, char* recordID){
     Node* node = linkedList->head;
