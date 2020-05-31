@@ -51,7 +51,10 @@ typedef struct CmdManager{
     size_t bucketSize;
     int numOfDirectories;
     char *input_dir;
+    int bufferSize;
     int numOfDiseases; /*auxiliary for statistics collection*/
+    int fd_client_w;
+    int fd_client_r;
 }CmdManager;
 
 typedef struct MonitorInputArguments{

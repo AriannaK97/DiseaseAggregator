@@ -35,7 +35,7 @@ typedef struct DirListItem{
 
 typedef struct FileDiseaseStats{
     char* disease;
-    int AgeRangeCasesArray[4];
+    int* AgeRangeCasesArray;
 }FileDiseaseStats;
 
 typedef struct FileItem{
@@ -98,5 +98,11 @@ void printAggregatorManagerDirectoryDistributor(AggregatorServerManager* aggrega
 void nodeDirListItemDeallock(DirListItem* dirListItem);
 
 void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerManager);
+
+bool sendStatistics(CmdManager* cmdManager);
+
+bool receiveStats(AggregatorServerManager* aggregatorServerManager, int workerId);
+
+void freeFileItemsArray(FileDiseaseStats* fileDiseaseStats);
 
 #endif //DISEASEAGGREGATOR_DISEASEAGGREGATOR_H

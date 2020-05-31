@@ -195,6 +195,9 @@ CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
     cmdManager->bucketSize = monitorInputArguments->bucketSize;
     cmdManager->directoryList = NULL;
     cmdManager->numOfDirectories = 0;
+    cmdManager->bufferSize = monitorInputArguments->bufferSize;
+    cmdManager->fd_client_r = -1;
+    cmdManager->fd_client_w = -1;
 
     return cmdManager;
 }
@@ -232,8 +235,10 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
 
 /*    fprintf(stdout, "%s\n", fileExplorer->fileItemsArray[fileExplorerPointer].fileName);
     fprintf(stdout,"%s\n", fileExplorer->country);*/
+
     fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats = getFileStats(cmdManager, fileExplorer->country, fileExplorer->fileItemsArray[fileExplorerPointer].dateFile);
     fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases = cmdManager->numOfDiseases;
+
 /*    fprintf(stdout, "numOfDiseases: %d\n",fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases);
     for (int i = 0; i < fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases; i++) {
         fprintf(stdout,"%s\n0-20 : %d\n21-40 : %d\n41-60 : %d\n61+ : %d\n",
@@ -260,6 +265,7 @@ FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date)
     iterator.date1 = date;
     Node* listNode;
     DiseaseNode* diseaseNode;
+    FileDiseaseStats** fileDiseaseStats;
 
     while(hashIterateValues(&iterator, COUNT_DISEASES) != NULL);
     manager->numOfDiseases = iterator.counter;
@@ -269,15 +275,14 @@ FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date)
     while (listNode!= NULL) {
         diseaseNode = listNode->item;
         iterator.fileStats[i] = malloc(sizeof(FileDiseaseStats));
-        iterator.fileStats[i]->disease = malloc(sizeof(char)*DATA_SPACE);
+        iterator.fileStats[i]->disease = malloc(sizeof(char)*16);
         strcpy(iterator.fileStats[i]->disease, diseaseNode->disease);
-        iterator.fileStats[i]->AgeRangeCasesArray[0] = 0;
-        iterator.fileStats[i]->AgeRangeCasesArray[1] = 0;
-        iterator.fileStats[i]->AgeRangeCasesArray[2] = 0;
-        iterator.fileStats[i]->AgeRangeCasesArray[3] = 0;
+        iterator.fileStats[i]->AgeRangeCasesArray = (int*)calloc(sizeof(int), 4);
         i++;
+        diseaseNodeDeallock(diseaseNode);
         listNode = listNode->next;
     }
+    iteratorListMemoryDeallock(iterator.DiseaseList);
     /*used for statistics collection*/
     iterator.index = 0;
     iterator.elem = manager->diseaseHashTable->table[0];
@@ -298,24 +303,24 @@ FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date)
                 }else if(strcmp(item->disease, iterator.fileStats[j]->disease)==0 && item->data <= 120){
                     iterator.fileStats[j]->AgeRangeCasesArray[3] = item->dataSum;
                 }
-
-                    listNode = listNode->next;
+                listNode = listNode->next;
             }
         }
+        listNode = iterator.AgeRangeNodes->head;
+        while(listNode != NULL){
+            item = listNode->item;
+            ageRangeNodeDeallock(item);
+            listNode = listNode->next;
+        }
+        iteratorListMemoryDeallock(iterator.AgeRangeNodes);
+
     }
 
-/*    fprintf(stdout, "numOfDiseases: %d\n",manager->numOfDiseases);
-    for (i = 0; i < manager->numOfDiseases; i++) {
-        fprintf(stdout,"%s\n0-20 : %d\n21-40 : %d\n41-60 : %d\n61+ : %d\n",
-                iterator.fileStats[i]->disease,
-                iterator.fileStats[i]->AgeRangeCasesArray[0],
-                iterator.fileStats[i]->AgeRangeCasesArray[1],
-                iterator.fileStats[i]->AgeRangeCasesArray[2],
-                iterator.fileStats[i]->AgeRangeCasesArray[3]);
-    }*/
+    fileDiseaseStats = malloc(sizeof(FileDiseaseStats*) * manager->numOfDiseases);
+    memcpy(fileDiseaseStats, iterator.fileStats, sizeof(FileDiseaseStats*)* manager->numOfDiseases);
+    free(iterator.fileStats);
 
-
-    return iterator.fileStats;
+    return fileDiseaseStats;
 }
 
 

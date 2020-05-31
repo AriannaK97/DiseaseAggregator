@@ -12,7 +12,7 @@
 #include "redBlackTree.h"
 #include "diseaseAggregator.h"
 
-#define DATA_SPACE 32
+#define DATA_SPACE 54
 #define DIR_LEN 256
 
 #define SEARCH 1
@@ -28,6 +28,7 @@
 #define GET_HEAP_NODES_AGE_RANGE 11
 #define GET_FILE_STATS 12
 #define COUNT_DISEASES 13
+#define COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY 14
 
 typedef struct FileDiseaseStats FileDiseaseStats;
 

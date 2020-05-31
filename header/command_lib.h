@@ -25,7 +25,7 @@ void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date*
 
 void exitMonitor(CmdManager* manager);
 
-void commandServer(CmdManager* manager, char* line);
+void commandServer(CmdManager* manager);
 
 void helpDesc();
 

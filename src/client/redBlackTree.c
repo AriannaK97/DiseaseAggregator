@@ -246,14 +246,15 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
             counter++;
 
     } else if (operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY
-            || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE){
+            || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY){
 
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
-            && strcmp(patient->virus, hashIterator->virus) == 0){
+            && strcmp(patient->country, hashIterator->country) == 0){
             counter++;
         }
 
-    } else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT ){
+    } else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT
+            || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE){
         if(checkExitDateSpace(patient, hashIterator->date1, hashIterator->date2)
            && strcmp(patient->virus, hashIterator->virus) == 0){
             counter++;

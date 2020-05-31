@@ -15,7 +15,7 @@ Node* nodeInit(void* item){
 }
 
 List* linkedListInit(Node* node){
-    List* newList = (List*)malloc(sizeof(List));
+    List* newList = (List*)calloc(sizeof(List), 1);
     newList->head = node;
     newList->tail = node;
     newList->itemCount = 0;
@@ -38,7 +38,7 @@ void push(Node* listNode, List* linkedList){
 /**
  * List memory deallocation for auxiliary list in heap
  * */
-void heapListMemoryDeallock(List* linkedList){
+void iteratorListMemoryDeallock(List* linkedList){
     Node* listNode = linkedList->head;
     while(listNode != NULL){
         linkedList->head = linkedList->head->next;
@@ -150,9 +150,19 @@ AgeRangeStruct* createAgeRangeNode(int data, int dataSum, char* disease){
     return ageRangeNode;
 }
 
+void ageRangeNodeDeallock(AgeRangeStruct* ageRangeStruct){
+    free(ageRangeStruct->disease);
+    free(ageRangeStruct);
+}
+
+void diseaseNodeDeallock(DiseaseNode* diseaseNode){
+    free(diseaseNode->disease);
+    free(diseaseNode);
+}
+
 DiseaseNode* createDiseaseNode(char* disease){
     DiseaseNode* diseaseNode = malloc(sizeof(DiseaseNode));
-    diseaseNode->disease = malloc(sizeof(char)*strlen(disease));
+    diseaseNode->disease = malloc(sizeof(char)*strlen(disease)+1);
     strcpy(diseaseNode->disease, disease);
     return diseaseNode;
 }

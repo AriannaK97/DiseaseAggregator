@@ -15,7 +15,6 @@
 int main(int argc, char** argv){
     Node* currentNode;
     DirListItem* item;
-    int messageSize;
     char *message;
     pid_t pid;
 /*****************************************************************************
@@ -67,20 +66,22 @@ int main(int argc, char** argv){
         aggregatorServerManager->workersArray[i].fd_client_w = openFifoToWrite(aggregatorServerManager->workersArray[i].serverFileName);
 
         /*send the length of the data the client has to read*/
-        writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, &(aggregatorServerManager->directoryDistributor[i]->itemCount), sizeof(int)+1);
-        printf("fd server: %d\n", aggregatorServerManager->workersArray[i].fd_client_w);
+        message = calloc(sizeof(char), aggregatorServerManager->bufferSize);
+        sprintf(message, "%d", aggregatorServerManager->directoryDistributor[i]->itemCount);
+        writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, message, (aggregatorServerManager->bufferSize) + 1);
+        free(message);
+
         currentNode = (Node*)aggregatorServerManager->directoryDistributor[i]->head;
         while (currentNode != NULL){
             item = currentNode->item;
-            messageSize = strlen(item->dirName);
             /*write the size of the name of the directory to follow to fifo*/
             //printf("from server %d\n", messageSize);
-            writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, &messageSize, sizeof(int)+1);
             /*write the directory name to fifo*/
-            if(messageSize > arguments->bufferSize)
-                writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, item->dirName, (size_t)messageSize+1);
-            else
-                writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, item->dirName, (arguments->bufferSize)+1);
+            message = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
+            strcpy(message, item->dirName);
+            writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, message, (size_t)(aggregatorServerManager->bufferSize)+1);
+            free(message);
+
             currentNode = currentNode->next;
         }
 
@@ -89,25 +90,26 @@ int main(int argc, char** argv){
         make_fifo_name_client_server(pid, aggregatorServerManager->workersArray[i].workerFileName);
         createNewFifoPipe(aggregatorServerManager->workersArray[i].workerFileName);
         aggregatorServerManager->workersArray[i].fd_client_r = openFifoToRead(aggregatorServerManager->workersArray[i].workerFileName);
-        /*receive the size of the incoming message from fifo*/
-        readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, &messageSize, sizeof(int)+1);
+
         /*read actual message from fifo*/
-        message = calloc(sizeof(char), messageSize+1);
-        if(messageSize > arguments->bufferSize)
-            readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, message,messageSize+1);
-        else
-            readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, message,(arguments->bufferSize)+1);
+        message = calloc(sizeof(char), (arguments->bufferSize)+1);
+        readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, message,(arguments->bufferSize)+1);
 
         fprintf(stdout, "%s\n", message);
+
+        if(!receiveStats(aggregatorServerManager, i)){
+            fprintf(stderr, "Could not receive statistics\n");
+        }
+
         free(message);
     }
+
+    DiseaseAggregatorServerManager(aggregatorServerManager);
 
     for (int j = 0; j < aggregatorServerManager->numOfWorkers; ++j) {
         close(aggregatorServerManager->workersArray[j].fd_client_w);
         close(aggregatorServerManager->workersArray[j].fd_client_r);
     }
-
-    DiseaseAggregatorServerManager(aggregatorServerManager);
 
 
     freeAggregatorInputArguments(arguments);

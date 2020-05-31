@@ -40,8 +40,12 @@ bool updateListVirusSum(List* linkedList, int key, char* disease);
 
 AgeRangeStruct* createAgeRangeNode(int data, int dataSum, char* disease);
 
-void heapListMemoryDeallock(List* linkedList);
+void iteratorListMemoryDeallock(List* linkedList);
 
 DiseaseNode* createDiseaseNode(char* disease);
+
+void ageRangeNodeDeallock(AgeRangeStruct* ageRangeStruct);
+
+void diseaseNodeDeallock(DiseaseNode* diseaseNode);
 
 #endif //DISEASEMONITOR_LIST_LIB_H

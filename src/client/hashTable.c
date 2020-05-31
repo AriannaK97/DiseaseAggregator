@@ -242,10 +242,9 @@ int iterateBucketData(Bucket* bucket, int operationCall, HashElement* hashIterat
 
                 if(strcmp(iterator[i].data, hashIterator->virus)==0){
                     counter += countPatients_BetweenDates((rbTree*)iterator[i].tree, operationCall, hashIterator);
-                    if(strlen(iterator[i].data)!=0)
-                        fprintf(stdout,"%s %d\n",iterator[i].data, counter);
+/*                    if(strlen(iterator[i].data)!=0)
+                        fprintf(stdout,"%s %d\n",iterator[i].data, counter);*/
                         //fprintf(stdout,"The number of patients monitored for %s: %d\n",iterator[i].data, counter);
-
                     hashIterator->counter += counter;
                     counter = 0;
                 }
