@@ -66,7 +66,7 @@ int main(int argc, char** argv){
         aggregatorServerManager->workersArray[i].fd_client_w = openFifoToWrite(aggregatorServerManager->workersArray[i].serverFileName);
 
         /*send the length of the data the client has to read*/
-        message = calloc(sizeof(char), aggregatorServerManager->bufferSize);
+        message = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
         sprintf(message, "%d", aggregatorServerManager->directoryDistributor[i]->itemCount);
         writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, message, (aggregatorServerManager->bufferSize) + 1);
         free(message);

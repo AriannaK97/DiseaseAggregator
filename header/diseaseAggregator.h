@@ -89,7 +89,7 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
 
 int countFilesInDirectory(DIR *FD);
 
-FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize);
+FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize, int bufferSize);
 
 AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv);
 

@@ -15,7 +15,7 @@ void listCountries(AggregatorServerManager* aggregatorServerManager);
 
 void diseaseFrequency(CmdManager* manager, char* virusName, Date* date1, Date* date2, char* country);
 
-void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , Date* date1, Date* date2, FileDiseaseStats* fileStats);
+void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , Date* date1, Date* date2);
 
 void searchPatientRecord(CmdManager* manager, char* recordID);
 

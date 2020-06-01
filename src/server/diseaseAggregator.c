@@ -129,13 +129,13 @@ int countFilesInDirectory(DIR *FD){
     return counter;
 }
 
-FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
+FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize, int bufferSize){
 
     struct dirent* in_file;
-    char *subDirPath = malloc(DIR_LEN*sizeof(char));
-    FileItem* fileArray = (struct FileItem*)malloc(sizeof(struct FileItem)*arraySize);
+    char *subDirPath = calloc(sizeof(char), bufferSize + 1);
+    FileItem* fileArray = (struct FileItem*)calloc(sizeof(struct FileItem),arraySize);
     int filePointer = 0;
-    char* temp =  malloc(sizeof(char) * DATA_SPACE);
+    char* temp =  calloc(sizeof(char), bufferSize + 1);
 
     while ((in_file = readdir(FD))) {
 
@@ -146,8 +146,8 @@ FileItem* createFileArray(DIR * FD, DirListItem* item, int arraySize){
 
         fileArray[filePointer].dateFile =  malloc(sizeof(struct Date));
 
-        fileArray[filePointer].filePath = malloc(sizeof(char) * DIR_LEN);
-        fileArray[filePointer].fileName = malloc(sizeof(char) * DIR_LEN);
+        fileArray[filePointer].filePath = calloc(sizeof(char), bufferSize + 1);
+        fileArray[filePointer].fileName = calloc(sizeof(char), bufferSize + 1);
         fileArray[filePointer].numOfDiseases = 0;
 
         strcpy(subDirPath, item->dirPath);
@@ -179,7 +179,7 @@ bool sendStatistics(CmdManager* cmdManager) {
     char* message;
 
     /*write the number of directories that will send stats to follow to fifo*/
-    message = calloc(sizeof(char), cmdManager->bufferSize);
+    message = calloc(sizeof(char), cmdManager->bufferSize + 1);
     sprintf(message, "%d", cmdManager->numOfDirectories);
     writeInFifoPipe(cmdManager->fd_client_w, message, (cmdManager->bufferSize) + 1);
     free(message);
@@ -189,7 +189,7 @@ bool sendStatistics(CmdManager* cmdManager) {
         writeInFifoPipe(cmdManager->fd_client_w, cmdManager->fileExplorer[i]->country,(cmdManager->bufferSize) + 1);
 
         /*write number of files for the country*/
-        messageSize = calloc(sizeof(char), cmdManager->bufferSize);
+        messageSize = calloc(sizeof(char), cmdManager->bufferSize + 1);
         sprintf(messageSize, "%d", cmdManager->fileExplorer[i]->fileArraySize);
         writeInFifoPipe(cmdManager->fd_client_w, messageSize, (cmdManager->bufferSize)  + 1);
         free(messageSize);
@@ -200,7 +200,7 @@ bool sendStatistics(CmdManager* cmdManager) {
                                 (cmdManager->bufferSize) + 1);
 
             /*write number of diseases for the country*/
-            messageSize = calloc(sizeof(char), cmdManager->bufferSize);
+            messageSize = calloc(sizeof(char), cmdManager->bufferSize + 1);
             sprintf(messageSize, "%d", cmdManager->fileExplorer[i]->fileItemsArray[j].numOfDiseases);
             writeInFifoPipe(cmdManager->fd_client_w, messageSize, (cmdManager->bufferSize)  + 1);
             free(messageSize);
@@ -211,7 +211,7 @@ bool sendStatistics(CmdManager* cmdManager) {
                                     cmdManager->fileExplorer[i]->fileItemsArray[j].fileDiseaseStats[k]->disease,(cmdManager->bufferSize) + 1);
                 /*write stats for age ranges*/
                 for (int l = 0; l < 4; l++) {
-                    message = calloc(sizeof(char), DATA_SPACE + 1);
+                    message = calloc(sizeof(char), (cmdManager->bufferSize) + 1);
                     if(l == 0){
                         sprintf(message, "Age range 0-20 years: %d cases", cmdManager->fileExplorer[i]->fileItemsArray[j].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
                     }else if(l == 1){
@@ -374,14 +374,27 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerMan
                         strcmp(command, "/searchPatientRecord") == 0 || strcmp(command, "/numPatientAdmissions") == 0
                         || strcmp(command, "/numPatientDischarges") == 0){
 
-                message = calloc(sizeof(char), DATA_SPACE);
+                message = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
                 sprintf(message, "%s %s", command, arguments);
 
-                for (int i = 0; i < aggregatorServerManager->numOfWorkers; i++) {
-                    writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, message, aggregatorServerManager->bufferSize + 1 );
-                    answer = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
-                    readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, answer, aggregatorServerManager->bufferSize + 1);
-                    fprintf(stdout, "%s\n", answer);
+                if(strcmp(command, "/diseaseFrequency") == 0 ){
+                    int total = 0;
+                    for (int i = 0; i < aggregatorServerManager->numOfWorkers; i++) {
+                        writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, message, aggregatorServerManager->bufferSize + 1 );
+                        answer = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
+                        readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, answer, aggregatorServerManager->bufferSize + 1);
+                        total += atoi(answer);
+                    }
+                    if(strcmp(answer, "null")!=0)
+                        fprintf(stdout, "%d\n", total);
+                }else{
+                    for (int i = 0; i < aggregatorServerManager->numOfWorkers; i++) {
+                        writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, message, aggregatorServerManager->bufferSize + 1 );
+                        answer = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
+                        readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, answer, aggregatorServerManager->bufferSize + 1);
+                        if(strcmp(answer, "null")!=0)
+                            fprintf(stdout, "%s", answer);
+                    }
                 }
                 fprintf(stdout, "~$:");
                 free(message);

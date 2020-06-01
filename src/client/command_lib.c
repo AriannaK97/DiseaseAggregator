@@ -64,36 +64,36 @@ void diseaseFrequency(CmdManager* manager, char* virusName, Date* date1, Date* d
  * number of diseased cases of the given disease during the period date1, date2, if that is specified.
  * Cmd Args: k country disease date1, date2
  * */
-void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , Date* date1, Date* date2, FileDiseaseStats* fileStats){
+void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , Date* date1, Date* date2){
     HashElement iterator = hashITERATOR(manager->diseaseHashTable);
+    char* message = calloc(sizeof(char), manager->bufferSize + 1);
+    int* ageRangeCasesArray = calloc(sizeof(int), 4);
+    float total = 0;
     iterator.country = country;
     iterator.virus = disease;
-    //Heap* maxHeap = createHeap();
-    if(date1 != NULL && date2 != NULL) {
-        iterator.date1 = date1;
-        iterator.date2 = date2;
-        while (hashIterateValues(&iterator, GET_HEAP_NODES_AGE_RANGE_DATES) != NULL);
-    }else {
-        /*used for statistics collection where the dates are redundant*/
-        while(hashIterateValues(&iterator, GET_HEAP_NODES_AGE_RANGE) != NULL);
-    }
+    iterator.date1 = date1;
+    iterator.date2 = date2;
+    while (hashIterateValues(&iterator, GET_HEAP_NODES_AGE_RANGE_DATES) != NULL);
+
     if(iterator.AgeRangeNodes == NULL || iterator.AgeRangeNodes->head == NULL){
         //fprintf(stdout, "There are no countries with cases of %s\n~$:", disease);
-        fprintf(stdout, "error\n~$:");
+        sprintf(message, "null");
+        writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
         //freeHeapTree(maxHeap);
     }else{
         Node* currentNode = iterator.AgeRangeNodes->head;
         AgeRangeStruct* item;
         while(currentNode != NULL){
             item = currentNode->item;
+            total += item->dataSum;
             if (item->data <= 20){
-                fileStats->AgeRangeCasesArray[0] = item->dataSum;
+                ageRangeCasesArray[0] = item->dataSum;
             }else if(item->data <= 40){
-                fileStats->AgeRangeCasesArray[1] = item->dataSum;
+                ageRangeCasesArray[1] = item->dataSum;
             }else if(item->data <= 60){
-                fileStats->AgeRangeCasesArray[2] = item->dataSum;
+                ageRangeCasesArray[2] = item->dataSum;
             }else if(item->data <= 120){
-                fileStats->AgeRangeCasesArray[3] = item->dataSum;
+                ageRangeCasesArray[3] = item->dataSum;
             }
             currentNode = currentNode->next;
         }
@@ -101,19 +101,23 @@ void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , D
             k = 4;
         }
 
-        while (k > 0){
-            if (k==0){
-                fprintf(stdout, "Age range 0-20: %d\n", fileStats->AgeRangeCasesArray[k]);
-            }else if(k==1){
-                fprintf(stdout, "Age range 21-40: %d\n", fileStats->AgeRangeCasesArray[k]);
-            }else if(k==2){
-                fprintf(stdout, "Age range 41-60: %d\n", fileStats->AgeRangeCasesArray[k]);
-            }else if(k==3){
-                fprintf(stdout, "Age range 60+: %d\n", fileStats->AgeRangeCasesArray[k]);
+        int i = 0;
+        while (i < k){
+            char *temp = calloc(sizeof(char), 12);
+            if (i==0){
+                sprintf(temp, "0-20: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
+            }else if(i==1){
+                sprintf(temp, "21-40: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
+            }else if(i==2){
+                sprintf(temp, "41-60: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
+            }else if(i==3){
+                sprintf(temp, "60+: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
             }
-            k--;
+            strcat(message, temp);
+            i++;
+            free(temp);
         }
-        fprintf(stdout, "~$:");
+        writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
     }
 }
 
@@ -126,7 +130,7 @@ void searchPatientRecord(CmdManager* manager, char* recordID){
     char* message = calloc(sizeof(char), manager->bufferSize + 1);
     patient = getPatientFromList(manager->patientList, recordID);
     if(patient == NULL){
-        sprintf(message,"%s","Error");
+        sprintf(message,"null");
     }else {
         if(patient->exitDate->day == 0){
             sprintf(message,"%s %s %s %s %d %d-%d-%d --\n", patient->recordID, patient->name, patient->surname, patient->virus,
@@ -152,11 +156,12 @@ void searchPatientRecord(CmdManager* manager, char* recordID){
  * Cmd Args: disease date1 date2 [country]
  * */
 void numPatientAdmissions(CmdManager* manager, char* disease, Date* date1, Date* date2, char* country){
-    HashElement iterator = hashITERATOR(manager->diseaseHashTable);
     int countryExists = false;
     char* message = calloc(sizeof(char), manager->bufferSize + 1);
     char* patientsNumStr = calloc(sizeof(char), 10);
+    int patientsNum = 0;
     if(country != NULL){
+        HashElement iterator = hashITERATOR(manager->countryHashTable);
         unsigned int h = hash(strlen(country)) % manager->countryHashTable->capacity;
         Bucket* bucket = manager->countryHashTable->table[h];
         iterator.date1 = date1;
@@ -167,12 +172,11 @@ void numPatientAdmissions(CmdManager* manager, char* disease, Date* date1, Date*
             while (bucket != NULL){
                 for(int i = 0; i < bucket->numOfEntries; i++){
                     if(strcmp(country, bucket->entry[i].data)==0){
-                        int patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY, &iterator);
+                        patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY, &iterator);
                         if(strlen(bucket->entry[i].data)!=0){
                             strcat(message, country);
-                            sprintf(patientsNumStr, "%d\n", patientsNum);
+                            sprintf(patientsNumStr, " %d\n", patientsNum);
                             strcat(message, patientsNumStr);
-                            //Todo: check buffersize - might exceed limit
                         }
                         countryExists = 1;
                         break;
@@ -182,49 +186,56 @@ void numPatientAdmissions(CmdManager* manager, char* disease, Date* date1, Date*
                     break;
                 bucket = bucket->next;
             }
-            if(!countryExists){
-                sprintf(message, "%s %d", country, 0);
+            if(!countryExists || patientsNum == 0){
+                sprintf(message, "null");
             }
-            writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
+
         }else{
-            sprintf(message, "%s %d", country, 0);
-            writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
+            sprintf(message, "null");
         }
-        //fprintf(stdout, "The number of hospitalised patients for %s: 0\n~$:", disease);
+        writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
+        free(message);
     }else{
+        HashElement iterator = hashITERATOR(manager->countryHashTable);
         int totalCounted = 0;
         iterator.date1 = date1;
         iterator.date2 = date2;
         iterator.virus = disease;
+        bool foundAnswer = false;
         for (unsigned int h = 0; h < manager->countryHashTable->capacity; h++ ){
             Bucket* bucket = manager->countryHashTable->table[h];
             if(bucket != NULL){
                 while (bucket != NULL){
                     for(int i = 0; i < bucket->numOfEntries; i++){
-                        int patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE, &iterator);
-                        if(strlen(bucket->entry[i].data)!=0) {
-                            strcat(message, country);
-                            sprintf(patientsNumStr, "%d\n", patientsNum);
+                        patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE, &iterator);
+                        if(strlen(bucket->entry[i].data)!=0 && patientsNum != 0) {
+                            strcat(message, bucket->entry[i].data);
+                            sprintf(patientsNumStr, " %d\n", patientsNum);
                             strcat(message, patientsNumStr);
+                            foundAnswer = true;
                         }
-                        //fprintf(stdout, "The number of the currently hospitalised patients for %s is: %d\n~$:", bucket->entry[i].data, patientsNum);
                         totalCounted += patientsNum;
                     }
                     bucket = bucket->next;
                 }
             }
         }
+        if (!foundAnswer){
+            sprintf(message, "null");
+        }
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
-        //fprintf(stdout, "\n~$:");
-        //fprintf(stdout, "Total number of patients counted: %d\n~$:", totalCounted);
+        free(message);
     }
 }
 
-
 void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date* date2, char* country){
-    HashElement iterator = hashITERATOR(manager->diseaseHashTable);
+    char* message = calloc(sizeof(char), manager->bufferSize + 1);
+    char* patientsNumStr = calloc(sizeof(char), 10);
     int countryExists = false;
+    int patientsNum = 0;
+    bool foundAnswer = false;
     if(country != NULL){
+        HashElement iterator = hashITERATOR(manager->countryHashTable);
         unsigned int h = hash(strlen(country)) % manager->countryHashTable->capacity;
         Bucket* bucket = manager->countryHashTable->table[h];
         iterator.date1 = date1;
@@ -235,10 +246,12 @@ void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date*
             while (bucket != NULL){
                 for(int i = 0; i < bucket->numOfEntries; i++){
                     if(strcmp(country, bucket->entry[i].data)==0){
-                        int patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT, &iterator);
-                        if(strlen(bucket->entry[i].data)!=0)
-                            fprintf(stdout, "%s %d\n~$:", country, patientsNum);
-                        //fprintf(stdout, "The number of the currently hospitalised patients for %s is: %d\n~$:", disease, patientsNum);
+                        patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY_EXIT, &iterator);
+                        if(strlen(bucket->entry[i].data)!=0){
+                            strcat(message, country);
+                            sprintf(patientsNumStr, " %d\n", patientsNum);
+                            strcat(message, patientsNumStr);
+                        }
                         countryExists = 1;
                         break;
                     }
@@ -247,14 +260,15 @@ void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date*
                     break;
                 bucket = bucket->next;
             }
-            if(!countryExists){
-                fprintf(stdout, "%s 0\n~$:", country);
-                //fprintf(stdout, "The disease %s does not exist in the system\n~$:", disease);
+            if(!countryExists || patientsNum == 0){
+                sprintf(message, "null");
             }
         }else
-            fprintf(stdout, "%s 0\n~$:", country);
-        //fprintf(stdout, "The number of hospitalised patients for %s: 0\n~$:", disease);
+            sprintf(message, "null");
+        writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
+        free(message);
     }else{
+        HashElement iterator = hashITERATOR(manager->countryHashTable);
         int totalCounted = 0;
         iterator.date1 = date1;
         iterator.date2 = date2;
@@ -264,18 +278,24 @@ void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date*
             if(bucket != NULL){
                 while (bucket != NULL){
                     for(int i = 0; i < bucket->numOfEntries; i++){
-                        int patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT, &iterator);
-                        if(strlen(bucket->entry[i].data)!=0)
-                            fprintf(stdout, "%s %d\n", bucket->entry[i].data, patientsNum);
-                        //fprintf(stdout, "The number of the currently hospitalised patients for %s is: %d\n~$:", bucket->entry[i].data, patientsNum);
+                        patientsNum = countPatients_BetweenDates(bucket->entry[i].tree, COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT, &iterator);
+                        if(strlen(bucket->entry[i].data)!=0 && patientsNum != 0) {
+                            strcat(message, bucket->entry[i].data);
+                            sprintf(patientsNumStr, " %d\n", patientsNum);
+                            strcat(message, patientsNumStr);
+                            foundAnswer = true;
+                        }
                         totalCounted += patientsNum;
                     }
                     bucket = bucket->next;
                 }
             }
         }
-        fprintf(stdout, "\n~$:");
-        //fprintf(stdout, "Total number of patients counted: %d\n~$:", totalCounted);
+        if (!foundAnswer){
+            sprintf(message, "null");
+        }
+        writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
+        free(message);
     }
 }
 
@@ -309,6 +329,7 @@ void commandServer(CmdManager* manager) {
 
     do{
     //while(getline(&line, &length, stdin) != EOF){
+
         reader = read(manager->fd_client_r, line, manager->bufferSize + 1);
         if (reader < 0) {
             break;
@@ -372,7 +393,7 @@ void commandServer(CmdManager* manager) {
                     date2->day = atoi(strtok(arg4, "-"));
                     date2->month = atoi(strtok(NULL, "-"));
                     date2->year = atoi(strtok(NULL, "-"));
-                    topk_AgeRanges(manager, k, country, disease, date1, date2, NULL);
+                    topk_AgeRanges(manager, k, country, disease, date1, date2);
                     free(date1);
                     free(date2);
 

@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
 
     cmdManager = initializeStructures(arguments);
-   cmdManager->workerInfo->workerPid = getpid();
+    cmdManager->workerInfo->workerPid = getpid();
 
     /*create endpoint of fifo from server*/
 
@@ -48,7 +48,6 @@ int main(int argc, char** argv) {
     cmdManager->fd_client_r = openFifoToRead(cmdManager->workerInfo->serverFileName);
 
     /*receive from server the length of data the client will receive*/
-
 
     dataLengthStr = calloc(sizeof(char), (arguments->bufferSize)+1);
     readFromFifoPipe(cmdManager->fd_client_r, dataLengthStr, (arguments->bufferSize) + 1);
@@ -104,8 +103,8 @@ int main(int argc, char** argv) {
         cmdManager->directoryList = linkedListInit(newNode);
     } else{
         push(newNode, cmdManager->directoryList);
-    }*/
-
+    }
+*/
     cmdManager = read_directory_list(cmdManager);
 
     /**

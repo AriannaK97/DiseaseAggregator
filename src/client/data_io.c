@@ -203,7 +203,7 @@ CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
 }
 
 CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer){
-    char* buffer = malloc(sizeof(char)*maxStrLength);
+    char* buffer = calloc(sizeof(char), maxStrLength);
     PatientCase* newPatient = NULL;
     Node* newNode = NULL;
 
@@ -269,13 +269,13 @@ FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date)
 
     while(hashIterateValues(&iterator, COUNT_DISEASES) != NULL);
     manager->numOfDiseases = iterator.counter;
-    iterator.fileStats = malloc(sizeof(FileDiseaseStats*) * manager->numOfDiseases);
+    iterator.fileStats = calloc(sizeof(FileDiseaseStats*), manager->numOfDiseases);
     int i = 0;
     listNode = iterator.DiseaseList->head;
     while (listNode!= NULL) {
         diseaseNode = listNode->item;
-        iterator.fileStats[i] = malloc(sizeof(FileDiseaseStats));
-        iterator.fileStats[i]->disease = malloc(sizeof(char)*16);
+        iterator.fileStats[i] = calloc(sizeof(FileDiseaseStats), 1);
+        iterator.fileStats[i]->disease = calloc(sizeof(char),manager->bufferSize + 1);
         strcpy(iterator.fileStats[i]->disease, diseaseNode->disease);
         iterator.fileStats[i]->AgeRangeCasesArray = (int*)calloc(sizeof(int), 4);
         i++;
@@ -316,7 +316,7 @@ FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date)
 
     }
 
-    fileDiseaseStats = malloc(sizeof(FileDiseaseStats*) * manager->numOfDiseases);
+    fileDiseaseStats = calloc(sizeof(FileDiseaseStats*), manager->numOfDiseases);
     memcpy(fileDiseaseStats, iterator.fileStats, sizeof(FileDiseaseStats*)* manager->numOfDiseases);
     free(iterator.fileStats);
 
@@ -351,7 +351,7 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
     //int arraySize;
     int dirNum = 0;
 
-    cmdManager->fileExplorer = malloc(sizeof(FileExplorer*) * cmdManager->numOfDirectories);
+    cmdManager->fileExplorer = calloc(sizeof(FileExplorer*), cmdManager->numOfDirectories);
 
     while (node != NULL) {
         cmdManager->fileExplorer[dirNum] = malloc(sizeof(FileExplorer));
@@ -364,11 +364,11 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
         }
 
         cmdManager->fileExplorer[dirNum]->fileArraySize = countFilesInDirectory(FD);
-        cmdManager->fileExplorer[dirNum]->country = malloc(sizeof(char) * DIR_LEN);
+        cmdManager->fileExplorer[dirNum]->country = calloc(sizeof(char), DIR_LEN);
         cmdManager->fileExplorer[dirNum]->successfulEntries = 0;
         cmdManager->fileExplorer[dirNum]->failedEntries = 0;
-        cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem*) malloc(sizeof(FileItem) * (cmdManager->fileExplorer[dirNum]->fileArraySize));
-        cmdManager->fileExplorer[dirNum]->fileItemsArray = createFileArray(FD, item, cmdManager->fileExplorer[dirNum]->fileArraySize);
+        cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem*) calloc(sizeof(FileItem), (cmdManager->fileExplorer[dirNum]->fileArraySize));
+        cmdManager->fileExplorer[dirNum]->fileItemsArray = createFileArray(FD, item, cmdManager->fileExplorer[dirNum]->fileArraySize, cmdManager->bufferSize);
         strcpy(cmdManager->fileExplorer[dirNum]->country, item->dirName);
 
         for (int i = 0; i < cmdManager->fileExplorer[dirNum]->fileArraySize; i++) {

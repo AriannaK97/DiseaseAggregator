@@ -245,16 +245,29 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2))
             counter++;
 
-    } else if (operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY
-            || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY){
+    }else if(operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE) {
+        if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
+           && strcmp(patient->virus, hashIterator->virus) == 0){
+            counter++;
+        }
+    } else if(operationCall == COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY){
+        if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
+           && strcmp(patient->country, hashIterator->country) == 0){
+            counter++;
+        }
+    }else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY){
 
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
-            && strcmp(patient->country, hashIterator->country) == 0){
+            && strcmp(patient->virus, hashIterator->virus) == 0){
             counter++;
         }
 
-    } else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT
-            || operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE){
+    } else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_EXIT){
+        if(checkExitDateSpace(patient, hashIterator->date1, hashIterator->date2)
+           && strcmp(patient->virus, hashIterator->virus) == 0){
+            counter++;
+        }
+    }else if (operationCall == COUNT_HOSPITALISED_BETWEEN_DATES_WITH_DISEASE_AND_COUNTRY_EXIT){
         if(checkExitDateSpace(patient, hashIterator->date1, hashIterator->date2)
            && strcmp(patient->virus, hashIterator->virus) == 0){
             counter++;
@@ -263,9 +276,7 @@ int rbNodeCounter_BetweenDates(rbNode* root, rbNode* nil, int operationCall, Has
     else if(operationCall == GET_HEAP_NODES_AGE_RANGE_DATES){
         if(checkDateSpace(patient, hashIterator->date1, hashIterator->date2)
         && strcmp(patient->country, hashIterator->country) == 0){
-            /*create a list o AgeRangeNodes - later these nodes will be used to create
-             * a heap-tree in commandLib
-             **/
+            /*create a list o AgeRangeNodes*/
             if(hashIterator->AgeRangeNodes == NULL){
                 AgeRangeStruct* newNode = createAgeRangeNode(patient->age, 1, patient->virus);
                 listNode = nodeInit(newNode);
