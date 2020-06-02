@@ -1,16 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/param.h>
-#include <sys/wait.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <time.h>
 #include "../../header/diseaseAggregator.h"
 #include "../../header/communication.h"
-
 
 int main(int argc, char** argv){
     Node* currentNode;
@@ -38,19 +31,23 @@ int main(int argc, char** argv){
 
     aggregatorServerManager->bufferSize = arguments->bufferSize;
     aggregatorServerManager->numOfWorkers = arguments->numWorkers;
+    aggregatorServerManager->input_dir = calloc(sizeof(char), DIR_LEN);
+    strcpy(aggregatorServerManager->input_dir, arguments->input_dir);
     aggregatorServerManager->workersArray = (WorkerInfo*)malloc(sizeof(WorkerInfo) * aggregatorServerManager->numOfWorkers);
 
+    freeAggregatorInputArguments(arguments);
+
     /*create workers*/
-    for(int i = 0; i < arguments->numWorkers; i++){
+    for(int i = 0; i < aggregatorServerManager->numOfWorkers; i++){
 
         if ((pid = fork()) == -1) {
             perror("fork error");
             exit(1);
         }else if (pid == 0) {
-            char* bufferSize_str = (char*)malloc(sizeof(char)*(arguments->bufferSize)+1);
-            sprintf(bufferSize_str, "%zu", arguments->bufferSize);
+            char* bufferSize_str = (char*)malloc(sizeof(char)*(aggregatorServerManager->bufferSize)+1);
+            sprintf(bufferSize_str, "%zu", aggregatorServerManager->bufferSize);
             execlp("./diseaseMonitor_client", "./diseaseMonitor_client", bufferSize_str, "5", "5" , "256",
-                    arguments->input_dir,(char*)NULL);
+                   aggregatorServerManager->input_dir,(char*)NULL);
             printf("Return not expected. Must be an execv error.n\n");
             free(bufferSize_str);
         }
@@ -92,8 +89,8 @@ int main(int argc, char** argv){
         aggregatorServerManager->workersArray[i].fd_client_r = openFifoToRead(aggregatorServerManager->workersArray[i].workerFileName);
 
         /*read actual message from fifo*/
-        message = calloc(sizeof(char), (arguments->bufferSize)+1);
-        readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, message,(arguments->bufferSize)+1);
+        message = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
+        readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, message,(aggregatorServerManager->bufferSize)+1);
 
         fprintf(stdout, "%s\n", message);
 
@@ -106,13 +103,11 @@ int main(int argc, char** argv){
 
     DiseaseAggregatorServerManager(aggregatorServerManager);
 
-    for (int j = 0; j < aggregatorServerManager->numOfWorkers; ++j) {
+/*    for (int j = 0; j < aggregatorServerManager->numOfWorkers; ++j) {
         close(aggregatorServerManager->workersArray[j].fd_client_w);
         close(aggregatorServerManager->workersArray[j].fd_client_r);
     }
 
-
-    freeAggregatorInputArguments(arguments);
-    freeAggregatorManager(aggregatorServerManager);
+    freeAggregatorManager(aggregatorServerManager);*/
     return 0;
 }

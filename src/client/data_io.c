@@ -3,14 +3,13 @@
 //
 #define  _GNU_SOURCE
 #include "../../header/data_io.h"
-#include "../../header/diseaseAggregator.h"
 #include "../../header/command_lib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
-#include <sys/wait.h>
+
 
 FILE* openFile(char *inputFile){
     FILE *patientRecordsFile;
@@ -190,6 +189,9 @@ CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
     cmdManager->workerInfo = malloc(sizeof(WorkerInfo));
     cmdManager->workerInfo->serverFileName = malloc(sizeof(char)*DIR_LEN);
     cmdManager->workerInfo->workerFileName = malloc(sizeof(char)*DIR_LEN);
+    cmdManager->workerLog = malloc(sizeof(WorkerLog));
+    cmdManager->workerLog->fails = 0;
+    cmdManager->workerLog->successes = 0;
     cmdManager->countryHashTable = hashCreate(monitorInputArguments->countryHashTableNumOfEntries);
     cmdManager->diseaseHashTable = hashCreate(monitorInputArguments->diseaseHashtableNumOfEntries);
     cmdManager->bucketSize = monitorInputArguments->bucketSize;
@@ -336,8 +338,16 @@ bool dateInputValidation(Date* entryDate, Date* exitDate){
     return false;
 }
 
+
+void deallockFileDiseaseStats(FileDiseaseStats* fileDiseaseStats){
+    free(fileDiseaseStats->disease);
+    free(fileDiseaseStats);
+}
+
+
 void deallockFileExplorer(FileExplorer *fileExplorer){
     free(fileExplorer->country);
+    deallockFileItem(fileExplorer->fileItemsArray);
     free(fileExplorer);
 }
 

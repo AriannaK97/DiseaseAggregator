@@ -71,15 +71,14 @@ typedef struct WorkerInfo{
 typedef struct AggregatorServerManager{
     List** directoryDistributor;
     int numOfWorkers;
-    WorkerInfo *workersArray;
+    WorkerInfo* workersArray;
     size_t bufferSize;
+    char *input_dir;
 }AggregatorServerManager;
 
 void freeAggregatorManager(AggregatorServerManager *aggregatorManager);
 
 void freeAggregatorInputArguments(AggregatorInputArguments *aggregatorInputArguments);
-
-void freeWorkerInfo(WorkerInfo workerInfo);
 
 bool make_fifo_name_server_client(pid_t workerNum, char *name);
 
@@ -95,14 +94,18 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv);
 
 void printAggregatorManagerDirectoryDistributor(AggregatorServerManager* aggregatorManager, int numOfWorkers);
 
-void nodeDirListItemDeallock(DirListItem* dirListItem);
-
 void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerManager);
 
 bool sendStatistics(CmdManager* cmdManager);
 
 bool receiveStats(AggregatorServerManager* aggregatorServerManager, int workerId);
 
-void freeFileItemsArray(FileDiseaseStats* fileDiseaseStats);
+void exitAggregator(AggregatorServerManager* aggregatorServerManager, char* command);
+
+void deallockWorkerInfo(WorkerInfo* workerInfo);
+
+void deallockFileItem(FileItem* fileItem);
+
+void nodeDirListItemDeallock(DirListItem* dirListItem);
 
 #endif //DISEASEAGGREGATOR_DISEASEAGGREGATOR_H

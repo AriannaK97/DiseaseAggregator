@@ -51,7 +51,7 @@ void iteratorListMemoryDeallock(List* linkedList){
 /**
  * List memory deallocation
  * */
-void listMemoryDeallock(List* linkedList){
+void patientListMemoryDeallock(List* linkedList){
     Node* listNode = linkedList->head;
     while(listNode != NULL){
         linkedList->head = linkedList->head->next;
@@ -150,6 +150,7 @@ AgeRangeStruct* createAgeRangeNode(int data, int dataSum, char* disease){
     return ageRangeNode;
 }
 
+
 void ageRangeNodeDeallock(AgeRangeStruct* ageRangeStruct){
     free(ageRangeStruct->disease);
     free(ageRangeStruct);
@@ -226,4 +227,16 @@ PatientCase* getPatientFromList(List* linkedList, char* recordID){
         node = node->next;
     }
     return NULL;
+}
+
+
+void dirListMemoryDeallock(List* linkedList){
+    Node* listNode = linkedList->head;
+    while(listNode != NULL){
+        linkedList->head = linkedList->head->next;
+        nodeDirListItemDeallock(listNode->item);
+        free(listNode);
+        listNode = linkedList->head;
+    }
+    free(linkedList);
 }

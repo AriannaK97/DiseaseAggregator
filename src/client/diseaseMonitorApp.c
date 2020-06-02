@@ -4,22 +4,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/wait.h>
 #include "../../header/data_io.h"
 #include "../../header/command_lib.h"
 #include "../../header/diseaseAggregator.h"
 #include "../../header/communication.h"
+#include "../../header/signalHandling.h"
 
 int main(int argc, char** argv) {
 
-    //int fd_client_r = -1;
-    //int fd_client_w = -1;
     int messageSize;
     char* message;
     int dataLength;
@@ -32,13 +25,28 @@ int main(int argc, char** argv) {
  *                       Handling command line arguments                     *
  *****************************************************************************/
     MonitorInputArguments* arguments = getMonitorInputArgs(argc, argv);
+
+/*****************************************************************************
+ *                            Signal Handling                                *
+ *****************************************************************************/
+
+    signal(SIGINT, sigintHandler);
+    signal(SIGQUIT, sigintHandler);
+
+
+
 /*****************************************************************************
  *                       Handling input files                                *
  *****************************************************************************/
 
 
+
     cmdManager = initializeStructures(arguments);
     cmdManager->workerInfo->workerPid = getpid();
+    globPid = getpid();
+    globWorkerLog = calloc(sizeof(WorkerLog), 1);
+    globWorkerLog->fails = 0;
+    globWorkerLog->successes = 0;
 
     /*create endpoint of fifo from server*/
 
@@ -49,8 +57,8 @@ int main(int argc, char** argv) {
 
     /*receive from server the length of data the client will receive*/
 
-    dataLengthStr = calloc(sizeof(char), (arguments->bufferSize)+1);
-    readFromFifoPipe(cmdManager->fd_client_r, dataLengthStr, (arguments->bufferSize) + 1);
+    dataLengthStr = calloc(sizeof(char), (cmdManager->bufferSize)+1);
+    readFromFifoPipe(cmdManager->fd_client_r, dataLengthStr, (cmdManager->bufferSize) + 1);
     dataLength = atoi(dataLengthStr);
     free(dataLengthStr);
 
@@ -105,6 +113,9 @@ int main(int argc, char** argv) {
         push(newNode, cmdManager->directoryList);
     }
 */
+
+    globDirList = calloc(sizeof(List), 1);
+    memcpy(globDirList, cmdManager->directoryList, sizeof(List));
     cmdManager = read_directory_list(cmdManager);
 
     /**

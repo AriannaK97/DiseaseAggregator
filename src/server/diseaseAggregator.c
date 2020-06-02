@@ -1,5 +1,5 @@
 //
-// Created by linuxuser on 21/5/20.
+// Created by AriannaK97 on 21/5/20.
 //
 #define  _GNU_SOURCE
 #include <sys/wait.h>
@@ -238,13 +238,11 @@ bool sendStatistics(CmdManager* cmdManager) {
     return true;
 }
 
-
-void freeFileItemsArray(FileDiseaseStats* fileDiseaseStats){
-    free(fileDiseaseStats->disease);
-    free(fileDiseaseStats->AgeRangeCasesArray);
+void deallockWorkerInfo(WorkerInfo* workerInfo){
+    free(workerInfo->workerFileName);
+    free(workerInfo->serverFileName);
+    free(workerInfo);
 }
-
-
 
 bool receiveStats(AggregatorServerManager* aggregatorServerManager, int workerId){
     char *country, *fileName, *disease, *message, *messageSize;
@@ -317,7 +315,7 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv){
     }
     for (int i = 1; i < argc; i += 2) {
         if (strcmp(argv[i], "-i") == 0) {
-            arguments->input_dir = malloc(sizeof(char)*254);
+            arguments->input_dir = malloc(sizeof(char)*DIR_LEN);
             strcpy(arguments->input_dir, argv[i + 1]);
             numOfArgs += 2;
         } else if (strcmp(argv[i], "-w") == 0) {
@@ -341,6 +339,29 @@ AggregatorInputArguments* getAggregatorInputArgs(int argc, char** argv){
     return arguments;
 }
 
+
+void exitAggregator(AggregatorServerManager* aggregatorServerManager, char* command){
+    char* answer;
+    char* message = calloc(sizeof(char), aggregatorServerManager->bufferSize+1);
+    strcpy(message, command);
+
+    for (int i = 0; i < aggregatorServerManager->numOfWorkers; i++){
+        writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, message, aggregatorServerManager->bufferSize + 1 );
+        answer = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
+        readFromFifoPipe(aggregatorServerManager->workersArray[i].fd_client_r, answer, aggregatorServerManager->bufferSize + 1);
+        if(strcmp(answer, "kill me father, for I have sinned") == 0)
+            kill(aggregatorServerManager->workersArray[i].workerPid,SIGKILL);
+        free(answer);
+    }
+
+    freeAggregatorManager(aggregatorServerManager);
+    free(message);
+    free(command);
+
+    exit(0);
+}
+
+
 void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerManager){
 
     char* command = NULL;
@@ -360,10 +381,10 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerMan
         }else if(strcmp(simpleCommand, "/help") == 0){
             helpDesc();
         } else if(strcmp(simpleCommand, "/exit") == 0){
-            free(line);
-            for (int i = 0; i < aggregatorServerManager->numOfWorkers; i++) {
+            exitAggregator(aggregatorServerManager, simpleCommand);
+            /*for (int i = 0; i < aggregatorServerManager->numOfWorkers; i++) {
                 writeInFifoPipe(aggregatorServerManager->workersArray[i].fd_client_w, simpleCommand, aggregatorServerManager->bufferSize + 1);
-            }
+            }*/
         }else if(strcmp(simpleCommand, "/listCountries") == 0){
             listCountries(aggregatorServerManager);
         }else {
@@ -407,28 +428,19 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* aggregatorServerMan
 
 }
 
-void nodeDirListItemDeallock(DirListItem* dirListItem){
-    free(dirListItem->dirPath);
-    free(dirListItem->dirName);
-    free(dirListItem);
-}
-
 
 void freeAggregatorManager(AggregatorServerManager *aggregatorManager){
-    Node* listNode;
+
     for (int i = 0; i < aggregatorManager->numOfWorkers; ++i) {
-        listNode = aggregatorManager->directoryDistributor[i]->head;
-        while(listNode != NULL){
-            aggregatorManager->directoryDistributor[i]->head = aggregatorManager->directoryDistributor[i]->head->next;
-            nodeDirListItemDeallock(listNode->item);
-            free(listNode);
-            listNode = aggregatorManager->directoryDistributor[i]->head;
-        }
-        free(aggregatorManager->directoryDistributor[i]);
-        freeWorkerInfo(aggregatorManager->workersArray[i]);
+        close(aggregatorManager->workersArray[i].fd_client_w);
+        close(aggregatorManager->workersArray[i].fd_client_r);
+        dirListMemoryDeallock(aggregatorManager->directoryDistributor[i]);
+        free(aggregatorManager->workersArray[i].workerFileName);
+        free(aggregatorManager->workersArray[i].serverFileName);
     }
     free(aggregatorManager->directoryDistributor);
     free(aggregatorManager->workersArray);
+    free(aggregatorManager->input_dir);
     free(aggregatorManager);
 }
 
@@ -437,8 +449,21 @@ void freeAggregatorInputArguments(AggregatorInputArguments *aggregatorInputArgum
     free(aggregatorInputArguments);
 }
 
-void freeWorkerInfo(WorkerInfo workerInfo){
-    free(workerInfo.serverFileName);
+void deallockFileItem(FileItem* fileItem){
+    free(fileItem->fileName);
+    free(fileItem->filePath);
+    free(fileItem->dateFile);
+    for (int i = 0; i < fileItem->numOfDiseases; ++i) {
+        deallockFileDiseaseStats(fileItem->fileDiseaseStats[i]);
+    }
+    free(fileItem);
 }
+
+void nodeDirListItemDeallock(DirListItem* dirListItem){
+    free(dirListItem->dirPath);
+    free(dirListItem->dirName);
+    free(dirListItem);
+}
+
 
 

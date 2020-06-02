@@ -20,7 +20,7 @@ List* linkedListInit(Node* node);
 
 void push(Node* listNode, List* linkedList);
 
-void listMemoryDeallock(List* linkedList);
+void patientListMemoryDeallock(List* linkedList);
 
 void printList(List* patientList);
 
@@ -47,5 +47,7 @@ DiseaseNode* createDiseaseNode(char* disease);
 void ageRangeNodeDeallock(AgeRangeStruct* ageRangeStruct);
 
 void diseaseNodeDeallock(DiseaseNode* diseaseNode);
+
+void dirListMemoryDeallock(List* linkedList);
 
 #endif //DISEASEMONITOR_LIST_LIB_H

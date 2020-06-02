@@ -11,6 +11,7 @@
 #include "list_lib.h"
 #include "hashTable.h"
 #include "structs.h"
+#include "diseaseAggregator.h"
 
 #define BUCKET_SIZE 120              /*bucket size for just one entry - minimum is 52*/
 #define DISEASE_HT_Entries_NUM 10   /*size of diseaseHashTable*/
@@ -49,5 +50,7 @@ CmdManager* read_directory_list(CmdManager* cmdManager);
 int compare (const void * a, const void * b);
 
 FileDiseaseStats** getFileStats(CmdManager* manager, char* country, Date * date);
+
+void deallockFileDiseaseStats(FileDiseaseStats* fileDiseaseStats);
 
 #endif //DISEASEMONITOR_DATA_IO_H

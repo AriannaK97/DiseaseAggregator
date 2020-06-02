@@ -10,6 +10,7 @@
 #include "../../header/hashTable.h"
 #include "../../header/diseaseAggregator.h"
 #include "../../header/communication.h"
+#include "../../header/signalHandling.h"
 
 /**
  * Prints every country along with its Worker's processID. It is usefull in case we want to add new files
@@ -40,18 +41,21 @@ void listCountries(AggregatorServerManager* aggregatorServerManager){
 void diseaseFrequency(CmdManager* manager, char* virusName, Date* date1, Date* date2, char* country){
 
     HashElement iterator = hashITERATOR(manager->diseaseHashTable);
+    char* message = calloc(sizeof(char), manager->bufferSize + 1);
     iterator.date1 = date1;
     iterator.date2 = date2;
     iterator.virus = virusName;
     if(country == NULL) {
         while (hashIterateValues(&iterator, COUNT_ALL_BETWEEN_DATES_WITH_VIRUS) != NULL);
-        char* message = calloc(sizeof(char), manager->bufferSize + 1);
-        sprintf(message, "%d", iterator.counter);
-        writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
     }else {
         iterator.country = country;
         while (hashIterateValues(&iterator, COUNT_ALL_BETWEEN_DATES_WITH_VIRUS_AND_COUNTRY) != NULL);
-        char* message = calloc(sizeof(char), manager->bufferSize + 1);
+    }
+
+    if(iterator.counter == 0){
+        sprintf(message, "null");
+        manager->workerLog->fails+=1;
+    }else{
         sprintf(message, "%d", iterator.counter);
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
     }
@@ -78,6 +82,7 @@ void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , D
     if(iterator.AgeRangeNodes == NULL || iterator.AgeRangeNodes->head == NULL){
         //fprintf(stdout, "There are no countries with cases of %s\n~$:", disease);
         sprintf(message, "null");
+        manager->workerLog->fails+=1;
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
         //freeHeapTree(maxHeap);
     }else{
@@ -131,6 +136,8 @@ void searchPatientRecord(CmdManager* manager, char* recordID){
     patient = getPatientFromList(manager->patientList, recordID);
     if(patient == NULL){
         sprintf(message,"null");
+        manager->workerLog->fails+=1;
+        globWorkerLog->fails+=1;
     }else {
         if(patient->exitDate->day == 0){
             sprintf(message,"%s %s %s %s %d %d-%d-%d --\n", patient->recordID, patient->name, patient->surname, patient->virus,
@@ -188,10 +195,12 @@ void numPatientAdmissions(CmdManager* manager, char* disease, Date* date1, Date*
             }
             if(!countryExists || patientsNum == 0){
                 sprintf(message, "null");
+                manager->workerLog->fails+=1;
             }
 
         }else{
             sprintf(message, "null");
+            manager->workerLog->fails+=1;
         }
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
         free(message);
@@ -222,6 +231,7 @@ void numPatientAdmissions(CmdManager* manager, char* disease, Date* date1, Date*
         }
         if (!foundAnswer){
             sprintf(message, "null");
+            manager->workerLog->fails+=1;
         }
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
         free(message);
@@ -262,9 +272,12 @@ void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date*
             }
             if(!countryExists || patientsNum == 0){
                 sprintf(message, "null");
+                manager->workerLog->fails+=1;
             }
-        }else
+        }else {
             sprintf(message, "null");
+            manager->workerLog->fails+=1;
+        }
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
         free(message);
     }else{
@@ -293,6 +306,7 @@ void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date*
         }
         if (!foundAnswer){
             sprintf(message, "null");
+            manager->workerLog->fails+=1;
         }
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
         free(message);
@@ -303,20 +317,57 @@ void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date*
  * Exit from the application - Memory dialloccation
  * */
 void exitMonitor(CmdManager* manager){
-    fprintf(stdout, "exiting\n");
+    FILE * fptr;
+    DirListItem* item;
+    Node* node = manager->directoryList->head;
+    char* fileName = calloc(sizeof(char), 15);
+    sprintf(fileName, "log_file.%d", manager->workerInfo->workerPid);
+    fptr = fopen(fileName, "w");
+    if(fptr < 0){
+        /* File not created hence exit */
+        perror("could not create log file for worker- ");
+        exit(3);
+    }
+
+    while (node != NULL) {
+        item = (DirListItem*)node->item;
+        fprintf(fptr, "%s\n",item->dirName);
+        node = node->next;
+    }
+
+    fprintf(fptr, "TOTAL %d\nSUCCESS %d\nFAIL %d", manager->workerLog->successes+manager->workerLog->fails,
+            manager->workerLog->successes, manager->workerLog->fails);
+
+    fclose(fptr);
+    free(fileName);
+
     //fprintf(stdout, "Destroying disease HashTable...\n");
     freeHashTable(manager->diseaseHashTable);
 
     //fprintf(stdout, "Destroying country HashTable...\n");
     freeHashTable(manager->countryHashTable);
 
-    //fprintf(stdout, "Destroy patient list...\n");
-    listMemoryDeallock(manager->patientList);
+    patientListMemoryDeallock(manager->patientList);
 
-    //deallockFileExplorer(manager->directoryExplorer);
+    dirListMemoryDeallock(manager->directoryList);
+
+    for (int i = 0; i < manager->numOfDirectories; ++i) {
+        deallockFileExplorer(manager->fileExplorer[i]);
+    }
+    deallockWorkerInfo(manager->workerInfo);
+
+    free(manager->workerLog);
+
+    free(manager->input_dir);
+
     free(manager);
 
-    exit(0);
+    writeInFifoPipe(manager->fd_client_w, "kill me father, for I have sinned", manager->bufferSize + 1);
+
+    close(manager->fd_client_r);
+    sleep(1);
+    close(manager->fd_client_w);
+    //exit(0);
 }
 
 
@@ -325,10 +376,8 @@ void commandServer(CmdManager* manager) {
     char *simpleCommand = NULL;
     char *line = calloc(sizeof(char), (manager->bufferSize) + 1);
     int reader;
-    //size_t length = 0;
 
     do{
-    //while(getline(&line, &length, stdin) != EOF){
 
         reader = read(manager->fd_client_r, line, manager->bufferSize + 1);
         if (reader < 0) {
@@ -336,21 +385,23 @@ void commandServer(CmdManager* manager) {
         }
         simpleCommand = strtok(line, "\n");
         if (simpleCommand == NULL) {
-            return;
+            manager->workerLog->fails+=1;
+            globWorkerLog->fails+=1;
+            continue;
         } else if (strcmp(simpleCommand, "/help") == 0) {
+            manager->workerLog->successes+=1;
+            globWorkerLog->successes+=1;
             helpDesc();
         } else if (strcmp(simpleCommand, "/exit") == 0) {
+            manager->workerLog->successes+=1;
+            globWorkerLog->successes+=1;
             free(line);
             exitMonitor(manager);
         } else {
 
             command = strtok(simpleCommand, " ");
 
-            if (strcmp(command, "/listCountries") == 0) {
-
-                //listCountries(manager);
-
-            } else if (strcmp(command, "/diseaseFrequency") == 0) {
+            if (strcmp(command, "/diseaseFrequency") == 0) {
                 Date *date1;
                 Date *date2;
                 date1 = malloc(sizeof(struct Date));
@@ -361,20 +412,29 @@ void commandServer(CmdManager* manager) {
                 char *arg3 = strtok(NULL, " ");   //date2
                 char *country = strtok(NULL, " ");
 
-                date1->day = atoi(strtok(arg2, "-"));
-                date1->month = atoi(strtok(NULL, "-"));
-                date1->year = atoi(strtok(NULL, "-"));
-                date2->day = atoi(strtok(arg3, "-"));
-                date2->month = atoi(strtok(NULL, "-"));
-                date2->year = atoi(strtok(NULL, "-"));
+                if (arg2 != NULL && arg3 != NULL) {
+                    date1->day = atoi(strtok(arg2, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg3, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes += 1;
+                    globWorkerLog->successes += 1;
 
-                if (country != NULL) {
-                    diseaseFrequency(manager, virusName, date1, date2, country);
-                } else
-                    diseaseFrequency(manager, virusName, date1, date2, NULL);
+                    manager->workerLog->successes += 1;
+                    globWorkerLog->successes += 1;
+                    if (country != NULL) {
+                        diseaseFrequency(manager, virusName, date1, date2, country);
+                    } else
+                        diseaseFrequency(manager, virusName, date1, date2, NULL);
 
-                free(date1);
-                free(date2);
+                    free(date1);
+                    free(date2);
+                }else{
+                    manager->workerLog->fails+=1;
+                    globWorkerLog->fails+=1;
+                }
 
             } else if (strcmp(command, "/topk-AgeRanges") == 0) {
 
@@ -393,17 +453,22 @@ void commandServer(CmdManager* manager) {
                     date2->day = atoi(strtok(arg4, "-"));
                     date2->month = atoi(strtok(NULL, "-"));
                     date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes+=1;
+                    globWorkerLog->successes+=1;
                     topk_AgeRanges(manager, k, country, disease, date1, date2);
                     free(date1);
                     free(date2);
 
                 } else if (arg3 == NULL || arg4 == NULL) {
-                    fprintf(stderr, "Missing date space. Please try again...\n~$:");
+                    manager->workerLog->fails+=1;
+                    globWorkerLog->fails+=1;
                 }
 
             } else if (strcmp(command, "/searchPatientRecord") == 0) {
 
                 char *recordID = strtok(NULL, "\n");
+                manager->workerLog->successes+=1;
+                globWorkerLog->successes+=1;
                 searchPatientRecord(manager, recordID);
 
             } else if (strcmp(command, "/numPatientAdmissions") == 0) {
@@ -418,20 +483,27 @@ void commandServer(CmdManager* manager) {
                 char *arg3 = strtok(NULL, " ");   //date2
                 char *country = strtok(NULL, " ");
 
-                date1->day = atoi(strtok(arg2, "-"));
-                date1->month = atoi(strtok(NULL, "-"));
-                date1->year = atoi(strtok(NULL, "-"));
-                date2->day = atoi(strtok(arg3, "-"));
-                date2->month = atoi(strtok(NULL, "-"));
-                date2->year = atoi(strtok(NULL, "-"));
+                if (arg2 != NULL && arg3 != NULL) {
+                    date1->day = atoi(strtok(arg2, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg3, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes+=1;
+                    globWorkerLog->successes+=1;
 
-                if (country != NULL) {
-                    numPatientAdmissions(manager, virusName, date1, date2, country);
-                } else
-                    numPatientAdmissions(manager, virusName, date1, date2, NULL);
+                    if (country != NULL) {
+                        numPatientAdmissions(manager, virusName, date1, date2, country);
+                    } else
+                        numPatientAdmissions(manager, virusName, date1, date2, NULL);
 
-                free(date1);
-                free(date2);
+                    free(date1);
+                    free(date2);
+                }else{
+                    manager->workerLog->fails+=1;
+                    globWorkerLog->fails+=1;
+                }
 
             } else if (strcmp(command, "/numPatientDischarges") == 0) {
                 Date *date1;
@@ -444,23 +516,31 @@ void commandServer(CmdManager* manager) {
                 char *arg3 = strtok(NULL, " ");   //date2
                 char *country = strtok(NULL, " ");
 
-                date1->day = atoi(strtok(arg2, "-"));
-                date1->month = atoi(strtok(NULL, "-"));
-                date1->year = atoi(strtok(NULL, "-"));
-                date2->day = atoi(strtok(arg3, "-"));
-                date2->month = atoi(strtok(NULL, "-"));
-                date2->year = atoi(strtok(NULL, "-"));
+                if (arg2 != NULL && arg3 != NULL) {
+                    date1->day = atoi(strtok(arg2, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg3, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes+=1;
+                    globWorkerLog->successes+=1;
+                    if (country != NULL) {
+                        numPatientDischarges(manager, virusName, date1, date2, country);
+                    } else
+                        numPatientDischarges(manager, virusName, date1, date2, NULL);
 
-                if (country != NULL) {
-                    numPatientDischarges(manager, virusName, date1, date2, country);
-                } else
-                    numPatientDischarges(manager, virusName, date1, date2, NULL);
-
-                free(date1);
-                free(date2);
+                    free(date1);
+                    free(date2);
+                }else{
+                    manager->workerLog->fails+=1;
+                    globWorkerLog->fails+=1;
+                }
+            } else{
+                manager->workerLog->fails+=1;
+                globWorkerLog->fails+=1;
             }
         }
-    //}
     }while(reader > 0 );
 }
 

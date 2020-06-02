@@ -41,13 +41,19 @@ typedef struct List{
     int itemCount;
 }List;
 
+typedef struct WorkerLog{
+    int successes;
+    int fails;
+}WorkerLog;
+
 typedef struct CmdManager{
     struct List* patientList;
     struct HashTable* diseaseHashTable;
     struct HashTable* countryHashTable;
     struct WorkerInfo* workerInfo;
     struct FileExplorer** fileExplorer;
-    List* directoryList;
+    struct WorkerLog* workerLog;
+    struct List* directoryList;
     size_t bucketSize;
     int numOfDirectories;
     char *input_dir;
