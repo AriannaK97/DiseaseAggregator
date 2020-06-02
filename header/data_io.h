@@ -35,7 +35,7 @@ int getMaxFromFile(FILE* patientRecordsFile, int returnVal);
 
 bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, HashTable* countryHashTable, int bucketSize, int fileExplorerPointer);
 
-CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer);
+CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer, bool signalServerToreadStats);
 
 bool dateInputValidation(Date* entryDate, Date* exitDate);
 

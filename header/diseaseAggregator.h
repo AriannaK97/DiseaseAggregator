@@ -5,23 +5,20 @@
 #ifndef DISEASEAGGREGATOR_DISEASEAGGREGATOR_H
 #define DISEASEAGGREGATOR_DISEASEAGGREGATOR_H
 
-#define  _POSIX_C_SOURCE 200809L
-
+#include <sys/types.h>
 #include <signal.h>
 #include "list_lib.h"
 #include "structs.h"
 #include <stdlib.h>
-#include <sys/types.h>
+#include <stdbool.h>
 #include <unistd.h>
-#include "../header/data_io.h"
+#include "data_io.h"
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 
 #define PERM_FILE 0666
 #define SERVER_FIFO_NAME "aggregator_server"
-#define READ 0
-#define WRITE 1
 
 typedef struct Message{
     pid_t m_clientpid;
@@ -74,7 +71,18 @@ typedef struct AggregatorServerManager{
     WorkerInfo* workersArray;
     size_t bufferSize;
     char *input_dir;
+    int success;
+    int fail;
+    char* line;
 }AggregatorServerManager;
+
+
+/**
+ * Global Vars/Structs
+ * */
+AggregatorServerManager* aggregatorServerManager;
+bool stayDead;
+
 
 void freeAggregatorManager(AggregatorServerManager *aggregatorManager);
 
@@ -100,12 +108,26 @@ bool sendStatistics(CmdManager* cmdManager);
 
 bool receiveStats(AggregatorServerManager* aggregatorServerManager, int workerId);
 
-void exitAggregator(AggregatorServerManager* aggregatorServerManager, char* command);
+void exitAggregator(AggregatorServerManager* aggregatorServerManager);
 
 void deallockWorkerInfo(WorkerInfo* workerInfo);
 
 void deallockFileItem(FileItem* fileItem);
 
 void nodeDirListItemDeallock(DirListItem* dirListItem);
+
+/**
+ * Signal Handlers
+ * */
+
+void respawnWorker(int sig);
+
+void aggregatorLogFile(int sig);
+
+void sigintHandler(int signal);
+
+void checkForNewFilesInSubDirs_handler(int sig);
+
+void debug(int sig);
 
 #endif //DISEASEAGGREGATOR_DISEASEAGGREGATOR_H

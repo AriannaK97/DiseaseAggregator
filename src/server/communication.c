@@ -19,6 +19,7 @@ int openFifoToRead(char *fileName){
         perror("fifo open problem");
         exit(3);
     }
+    printf("opening pipe - read\n");
     return fd_client_r;
 }
 
@@ -28,6 +29,7 @@ int openFifoToWrite(char *fileName){
         perror("fifo open error");
         exit(1);
     }
+    printf("opening pipe - write\n");
     return fd_client_w;
 }
 

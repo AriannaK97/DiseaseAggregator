@@ -30,7 +30,7 @@ FILE* openFile(char *inputFile){
 MonitorInputArguments* getMonitorInputArgs(int argc, char** argv){
 
     MonitorInputArguments* arguments =  (struct MonitorInputArguments*)malloc(sizeof(struct MonitorInputArguments));
-    if(argc != 6){
+    if(argc != 7){
         fprintf(stderr, "Invalid number of arguments\nExit...\n");
         exit(1);
     }
@@ -47,6 +47,8 @@ MonitorInputArguments* getMonitorInputArgs(int argc, char** argv){
         } else if (i == 5){
             arguments->input_dir = (char*)malloc(sizeof(char)*DIR_LEN);
             strcpy(arguments->input_dir, argv[i]);
+        } else if(i == 6){
+            arguments->workerId = atoi(argv[i]);
         }
     }
 
@@ -181,7 +183,7 @@ bool writeEntry(char* buffer, List* patientList, HashTable* diseaseHashTable, Ha
 }
 
 CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
-    CmdManager* cmdManager = malloc(sizeof(struct CmdManager));
+    cmdManager = malloc(sizeof(struct CmdManager));
 
     cmdManager->patientList = NULL;
     cmdManager->input_dir = (char*)malloc(sizeof(char)*DIR_LEN);
@@ -204,7 +206,7 @@ CmdManager* initializeStructures(MonitorInputArguments *monitorInputArguments){
     return cmdManager;
 }
 
-CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer){
+CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdManager* cmdManager, FileExplorer* fileExplorer, int fileExplorerPointer, bool signalServerToreadStats){
     char* buffer = calloc(sizeof(char), maxStrLength);
     PatientCase* newPatient = NULL;
     Node* newNode = NULL;
@@ -372,6 +374,7 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
             fprintf(stderr, "Error : Failed to open input directory - %s\n", strerror(errno));
             exit(1);
         }
+        printf("opening dir\n");
 
         cmdManager->fileExplorer[dirNum]->fileArraySize = countFilesInDirectory(FD);
         cmdManager->fileExplorer[dirNum]->country = calloc(sizeof(char), DIR_LEN);
@@ -383,18 +386,20 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
 
         for (int i = 0; i < cmdManager->fileExplorer[dirNum]->fileArraySize; i++) {
             entry_file = fopen(cmdManager->fileExplorer[dirNum]->fileItemsArray[i].filePath, "r");
+            printf("opening file\n");
             if (entry_file == NULL) {
                 fprintf(stderr, "Error : Failed to open entry file %s %s - %s\n", cmdManager->fileExplorer[dirNum]->fileItemsArray[i].filePath, cmdManager->fileExplorer[dirNum]->country, strerror(errno));
                 exit(1);
             }
 
             cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
-                                         cmdManager->fileExplorer[dirNum] , i);
+                                         cmdManager->fileExplorer[dirNum] , i, false);
             fclose(entry_file);
             numOfFileInSubDirectory++;
         }
         dirNum++;
         node = node->next;
+        closedir(FD);
     }
 
     return cmdManager;

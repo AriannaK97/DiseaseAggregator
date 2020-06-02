@@ -61,6 +61,7 @@ typedef struct CmdManager{
     int numOfDiseases; /*auxiliary for statistics collection*/
     int fd_client_w;
     int fd_client_r;
+    int workerId;
 }CmdManager;
 
 typedef struct MonitorInputArguments{
@@ -69,6 +70,7 @@ typedef struct MonitorInputArguments{
     int countryHashTableNumOfEntries;
     size_t bufferSize;
     char *input_dir;
+    int workerId;
 }MonitorInputArguments;
 
 typedef struct AgeRangeStruct{
@@ -80,5 +82,11 @@ typedef struct AgeRangeStruct{
 typedef struct DiseaseNode{
     char* disease;
 }DiseaseNode;
+
+/**
+ *  Global Variables
+ **/
+
+CmdManager* cmdManager;
 
 #endif //DISEASEMONITOR_STRUCTS_H

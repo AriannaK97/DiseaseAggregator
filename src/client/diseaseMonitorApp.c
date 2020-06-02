@@ -9,7 +9,6 @@
 #include "../../header/command_lib.h"
 #include "../../header/diseaseAggregator.h"
 #include "../../header/communication.h"
-#include "../../header/signalHandling.h"
 
 int main(int argc, char** argv) {
 
@@ -19,7 +18,7 @@ int main(int argc, char** argv) {
     char* dataLengthStr;
     DirListItem* newNodeItem = NULL;
     Node* newNode = NULL;
-    CmdManager* cmdManager;
+    //CmdManager* cmdManager;
 
 /*****************************************************************************
  *                       Handling command line arguments                     *
@@ -32,7 +31,7 @@ int main(int argc, char** argv) {
 
     signal(SIGINT, sigintHandler);
     signal(SIGQUIT, sigintHandler);
-
+    signal(SIGUSR1, checkForNewFilesInSubDirs_handler);
 
 
 /*****************************************************************************
@@ -43,10 +42,7 @@ int main(int argc, char** argv) {
 
     cmdManager = initializeStructures(arguments);
     cmdManager->workerInfo->workerPid = getpid();
-    globPid = getpid();
-    globWorkerLog = calloc(sizeof(WorkerLog), 1);
-    globWorkerLog->fails = 0;
-    globWorkerLog->successes = 0;
+    cmdManager->workerId = arguments->workerId;
 
     /*create endpoint of fifo from server*/
 
@@ -54,6 +50,7 @@ int main(int argc, char** argv) {
     createNewFifoPipe(cmdManager->workerInfo->serverFileName);
 
     cmdManager->fd_client_r = openFifoToRead(cmdManager->workerInfo->serverFileName);
+
 
     /*receive from server the length of data the client will receive*/
 
@@ -114,8 +111,7 @@ int main(int argc, char** argv) {
     }
 */
 
-    globDirList = calloc(sizeof(List), 1);
-    memcpy(globDirList, cmdManager->directoryList, sizeof(List));
+
     cmdManager = read_directory_list(cmdManager);
 
     /**
