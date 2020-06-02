@@ -236,8 +236,8 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
             }
         }
     }
-
-/*    fprintf(stdout, "%s\n", fileExplorer->fileItemsArray[fileExplorerPointer].fileName);
+/*
+    fprintf(stdout, "%s\n", fileExplorer->fileItemsArray[fileExplorerPointer].fileName);
     fprintf(stdout,"%s\n", fileExplorer->country);*/
 
     fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats = getFileStats(cmdManager, fileExplorer->country, fileExplorer->fileItemsArray[fileExplorerPointer].dateFile);
@@ -401,7 +401,6 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
         node = node->next;
         closedir(FD);
     }
-
     return cmdManager;
 }
 

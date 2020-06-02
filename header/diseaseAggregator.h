@@ -116,6 +116,8 @@ void deallockFileItem(FileItem* fileItem);
 
 void nodeDirListItemDeallock(DirListItem* dirListItem);
 
+void commandServer(CmdManager* manager);
+
 /**
  * Signal Handlers
  * */

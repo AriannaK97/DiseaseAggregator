@@ -463,6 +463,175 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* pAggregatorServerMa
 }
 
 
+void commandServer(CmdManager* manager) {
+    char *command = NULL;
+    char *simpleCommand = NULL;
+    char *line = calloc(sizeof(char), (manager->bufferSize) + 1);
+    int reader;
+
+    do{
+
+        if(sig_flag){
+            reader = read(manager->fd_client_r, line, manager->bufferSize + 1);
+            sig_flag = false;
+        } else{
+            reader = read(manager->fd_client_r, line, manager->bufferSize + 1);
+        }
+
+
+        if (reader < 0) {
+            break;
+        }
+        simpleCommand = strtok(line, "\n");
+        if (simpleCommand == NULL) {
+            manager->workerLog->fails+=1;
+            continue;
+        } else if (strcmp(simpleCommand, "/help") == 0) {
+            manager->workerLog->successes+=1;
+            helpDesc();
+        } else if (strcmp(simpleCommand, "/exit") == 0) {
+            manager->workerLog->successes+=1;
+            free(line);
+            exitMonitor(manager);
+        } else {
+
+            command = strtok(simpleCommand, " ");
+
+            if (strcmp(command, "/diseaseFrequency") == 0) {
+                Date *date1;
+                Date *date2;
+                date1 = malloc(sizeof(struct Date));
+                date2 = malloc(sizeof(struct Date));
+
+                char *virusName = strtok(NULL, " ");   //virus
+                char *arg2 = strtok(NULL, " ");   //date1
+                char *arg3 = strtok(NULL, " ");   //date2
+                char *country = strtok(NULL, " ");
+
+                if (arg2 != NULL && arg3 != NULL) {
+                    date1->day = atoi(strtok(arg2, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg3, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes += 1;
+
+                    if (country != NULL) {
+                        diseaseFrequency(manager, virusName, date1, date2, country);
+                    } else
+                        diseaseFrequency(manager, virusName, date1, date2, NULL);
+
+                    free(date1);
+                    free(date2);
+                }else{
+                    manager->workerLog->fails+=1;
+                }
+
+            } else if (strcmp(command, "/topk-AgeRanges") == 0) {
+
+                int k = atoi(strtok(NULL, " "));
+                char *country = strtok(NULL, " ");
+                char *disease = strtok(NULL, " ");
+                char *arg3 = strtok(NULL, " ");
+                char *arg4 = strtok(NULL, " ");
+
+                if (arg3 != NULL && arg4 != NULL) {
+                    Date *date1 = malloc(sizeof(struct Date));
+                    Date *date2 = malloc(sizeof(struct Date));
+                    date1->day = atoi(strtok(arg3, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg4, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes+=1;
+                    topk_AgeRanges(manager, k, country, disease, date1, date2);
+                    free(date1);
+                    free(date2);
+
+                } else if (arg3 == NULL || arg4 == NULL) {
+                    manager->workerLog->fails+=1;
+                }
+
+            } else if (strcmp(command, "/searchPatientRecord") == 0) {
+
+                char *recordID = strtok(NULL, "\n");
+                manager->workerLog->successes+=1;
+                searchPatientRecord(manager, recordID);
+
+            } else if (strcmp(command, "/numPatientAdmissions") == 0) {
+
+                Date *date1;
+                Date *date2;
+                date1 = malloc(sizeof(struct Date));
+                date2 = malloc(sizeof(struct Date));
+
+                char *virusName = strtok(NULL, " ");   //virus
+                char *arg2 = strtok(NULL, " ");   //date1
+                char *arg3 = strtok(NULL, " ");   //date2
+                char *country = strtok(NULL, " ");
+
+                if (arg2 != NULL && arg3 != NULL) {
+                    date1->day = atoi(strtok(arg2, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg3, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes+=1;
+
+                    if (country != NULL) {
+                        numPatientAdmissions(manager, virusName, date1, date2, country);
+                    } else
+                        numPatientAdmissions(manager, virusName, date1, date2, NULL);
+
+                    free(date1);
+                    free(date2);
+                }else{
+                    manager->workerLog->fails+=1;
+                }
+
+            } else if (strcmp(command, "/numPatientDischarges") == 0) {
+                Date *date1;
+                Date *date2;
+                date1 = malloc(sizeof(struct Date));
+                date2 = malloc(sizeof(struct Date));
+
+                char *virusName = strtok(NULL, " ");   //virus
+                char *arg2 = strtok(NULL, " ");   //date1
+                char *arg3 = strtok(NULL, " ");   //date2
+                char *country = strtok(NULL, " ");
+
+                if (arg2 != NULL && arg3 != NULL) {
+                    date1->day = atoi(strtok(arg2, "-"));
+                    date1->month = atoi(strtok(NULL, "-"));
+                    date1->year = atoi(strtok(NULL, "-"));
+                    date2->day = atoi(strtok(arg3, "-"));
+                    date2->month = atoi(strtok(NULL, "-"));
+                    date2->year = atoi(strtok(NULL, "-"));
+                    manager->workerLog->successes+=1;
+                    if (country != NULL) {
+                        numPatientDischarges(manager, virusName, date1, date2, country);
+                    } else
+                        numPatientDischarges(manager, virusName, date1, date2, NULL);
+
+                    free(date1);
+                    free(date2);
+                }else{
+                    manager->workerLog->fails+=1;
+                }
+            } else{
+                manager->workerLog->fails+=1;
+            }
+        }
+    }while(reader > 0 );
+}
+
+
+
+
+
 void freeAggregatorManager(AggregatorServerManager *aggregatorManager){
 
     for (int i = 0; i < aggregatorManager->numOfWorkers; ++i) {
@@ -641,6 +810,7 @@ void debug(int sig){
 
 
 void checkForNewFilesInSubDirs_handler(int sig){
+    sig_flag = true;
     Node* node;
     FILE* entry_file;
     DIR* FD;
@@ -649,7 +819,8 @@ void checkForNewFilesInSubDirs_handler(int sig){
     struct dirent* in_file;
     int numOfFileInSubDirectory = 0;
     int previousNumOfFiles = 0;
-    bool foundNewFile = false;
+    int fileArrayPosition = 0;
+    bool fileExists = true;
     int numOfNewFiles = 0;
     char* messageSize;
     char* message;
@@ -660,122 +831,84 @@ void checkForNewFilesInSubDirs_handler(int sig){
     node = cmdManager->directoryList->head;
     while (node != NULL) {
         item = (DirListItem*)node->item;
+
         /* Scanning the in directory */
         if (NULL == (FD = opendir(item->dirPath))) {
             fprintf(stderr, "Error : Failed to open input directory - %s\n", strerror(errno));
             exit(1);
-        }
-        numOfFileInSubDirectory = countFilesInDirectory(FD);
-        printf("opened from checkForNewFilesInSubDirs_handler\n");
-        if(cmdManager->fileExplorer[dirNum]->fileArraySize == numOfFileInSubDirectory){
-            continue;
-        }else {
-            previousNumOfFiles = cmdManager->fileExplorer[dirNum]->fileArraySize;
-            cmdManager->fileExplorer[dirNum]->fileArraySize = numOfFileInSubDirectory;
+        }else{
 
-/*            cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem *) realloc(
-                    cmdManager->fileExplorer[dirNum]->fileItemsArray,
-                    sizeof(FileItem) * (cmdManager->fileExplorer[dirNum]->fileArraySize));*/
+            numOfNewFiles = countFilesInDirectory(FD);
+            if(numOfNewFiles != cmdManager->fileExplorer[dirNum]->fileArraySize) {
+                printf("%s %d\n", item->dirName, numOfNewFiles);
+                previousNumOfFiles = cmdManager->fileExplorer[dirNum]->fileArraySize;
+                fileArrayPosition = cmdManager->fileExplorer[dirNum]->fileArraySize;
+                cmdManager->fileExplorer[dirNum]->fileArraySize = numOfFileInSubDirectory;
 
-/*            while ((in_file = readdir(FD))) {
-                if (!strcmp(in_file->d_name, "."))
-                    continue;
-                if (!strcmp(in_file->d_name, ".."))
-                    continue;
+                /*reallocate memory*/
+/*                cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem *) realloc(
+                        cmdManager->fileExplorer[dirNum]->fileItemsArray,
+                        sizeof(FileItem) * (cmdManager->fileExplorer[dirNum]->fileArraySize));*/
 
-                for (int i = 0; i < previousNumOfFiles; ++i) {
-                    if (strcmp(cmdManager->fileExplorer[dirNum]->fileItemsArray[i].fileName, in_file->d_name) != 0) {
-                        fprintf(stdout, "found it!");
-                        foundNewFile = true;
-                    }
-                }
-                break;
-            }*/
-        }
-        closedir(FD);
-        sleep(60);
-        node = node->next;
-        break;
-        dirNum+=1;
-    }
-/*
-                if(foundNewFile){
-                    cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].numOfDiseases = 0;
+                while ((in_file = readdir(FD))) {
+                    if (!strcmp(in_file->d_name, "."))
+                        continue;
+                    if (!strcmp(in_file->d_name, ".."))
+                        continue;
 
-                    strcpy(subDirPath, item->dirPath);
-                    strcat(subDirPath, "/");
-                    strcat(subDirPath, in_file->d_name);
-                    strcpy(temp, in_file->d_name);
-
-                    cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].dateFile->day = atoi(strtok(temp, "-"));
-                    cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].dateFile->month = atoi(strtok(NULL, "-"));
-                    cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].dateFile->year = atoi(strtok(NULL, "-"));
-
-                    strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].filePath, subDirPath);
-
-                    strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileName,in_file->d_name);
-
-                    entry_file = fopen(cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].filePath, "r");
-                    if (entry_file == NULL) {
-                        fprintf(stderr, "Error : Failed to open entry file %s %s - %s\n", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].filePath, cmdManager->fileExplorer[dirNum]->country, strerror(errno));
-                        exit(1);
-                    }
-
-
-                    cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
-                                                 cmdManager->fileExplorer[dirNum] , previousNumOfFiles, true);
-                    fclose(entry_file);
-                    numOfNewFiles+=1;
-                    previousNumOfFiles+=1;
-
-
-                    kill(getppid(), SIGUSR1);
-                    *//**send statistics*//*
-                    *//*write the country*//*
-                    writeInFifoPipe(cmdManager->fd_client_w, cmdManager->fileExplorer[dirNum]->country,(cmdManager->bufferSize) + 1);
-
-                    *//*write the file name*//*
-
-                    writeInFifoPipe(cmdManager->fd_client_w, cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileName,
-                                    (cmdManager->bufferSize) + 1);
-
-                    *//*write number of diseases for the country*//*
-                    messageSize = calloc(sizeof(char), cmdManager->bufferSize + 1);
-                    sprintf(messageSize, "%d", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].numOfDiseases);
-                    writeInFifoPipe(cmdManager->fd_client_w, messageSize, (cmdManager->bufferSize)  + 1);
-                    free(messageSize);
-
-                    for (int k = 0; k < cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].numOfDiseases; k++) {
-                        *//*write disease*//*
-
-                        writeInFifoPipe(cmdManager->fd_client_w,
-                                        cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->disease,(cmdManager->bufferSize) + 1);
-                        *//*write stats for age ranges*//*
-                        for (int l = 0; l < 4; l++) {
-                            message = calloc(sizeof(char), (cmdManager->bufferSize) + 1);
-                            if(l == 0){
-                                sprintf(message, "Age range 0-20 years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
-                            }else if(l == 1){
-                                sprintf(message, "Age range 21-40 years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
-                            }else if(l == 2){
-                                sprintf(message, "Age range 41-60 years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
-                            }else if(l == 3){
-                                sprintf(message, "Age range 60+ years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
-                            }
-
-                            writeInFifoPipe(cmdManager->fd_client_w, message,(cmdManager->bufferSize) + 1);
-
-                            free(message);
+                    for (int i = 0; i < previousNumOfFiles; i++) {
+                        printf("%s, %s\n", cmdManager->fileExplorer[dirNum]->fileItemsArray[i].fileName, in_file->d_name);
+                        if(strcmp(cmdManager->fileExplorer[dirNum]->fileItemsArray[i].fileName, in_file->d_name) != 0){
+                            fileExists = false;
                         }
-                        *//*end of stat batch*//*
-
-                        writeInFifoPipe(cmdManager->fd_client_w, "next",(cmdManager->bufferSize) + 1);
                     }
-                //}
+
+                    if(!fileExists){
+                        strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].fileName, in_file->d_name);
+                        fprintf(stdout, "found it!");
+
+                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].numOfDiseases = 0;
+
+                        strcpy(subDirPath, item->dirPath);
+                        strcat(subDirPath, "/");
+                        strcat(subDirPath, in_file->d_name);
+                        strcpy(temp, in_file->d_name);
+
+                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->day = atoi(strtok(temp, "-"));
+                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->month = atoi(strtok(NULL, "-"));
+                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->year = atoi(strtok(NULL, "-"));
+
+                        strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath, subDirPath);
+
+                        strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].fileName, in_file->d_name);
+
+                        entry_file = fopen(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath,"r");
+                        if (entry_file == NULL) {
+                            fprintf(stderr, "Error : Failed to open entry file %s %s - %s\n",
+                                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath,
+                                    cmdManager->fileExplorer[dirNum]->country, strerror(errno));
+                            exit(1);
+                        }
+
+                        cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
+                                                     cmdManager->fileExplorer[dirNum], fileArrayPosition, false);
+
+                        fclose(entry_file);
+                        fileArrayPosition += 1;
+                    }
+                    fileExists = false;
+
+                }
+
+                printf("opening dir\n");
+                closedir(FD);
+                dirNum+=1;
             }
         }
-        dirNum+=1;*/
+        node = node->next;
+        dirNum+=1;
     }
+}
 
 
 
