@@ -2,44 +2,44 @@
 #call with >5 args
 
 generate_random_name(){
-  if [ ! -f "$namesFile" ];
-  then
-    echo "File $namesFile does not exist"
-    exit 1;
-  elif [ ! -f "$surnamesFile" ];
-  then
-    echo "File $surnamesFile does not exist"
-    exit 1 ;
-  else
-    FLOOR=1
-    NAME_RANGE=$(< "./names" wc -l) #number of lines is the range RANDOM can act
-    SURNAME_RANGE=$(< "./surnames" wc -l) #number of lines is the range RANDOM can act
-
-    nameLine=0   #initialize
-    surnameLine=0
-    while [ "$nameLine" -le $FLOOR ]
-    do
-      nameLine=$RANDOM
-      let "nameLine%=$NAME_RANGE"  # Scales $number down within $DAY_RANGE.
-    done
-
-    while [ "$surnameLine" -le $FLOOR ]
-    do
-      surnameLine=$RANDOM
-      let "surnameLine%=$SURNAME_RANGE"  # Scales $number down within $DAY_RANGE.
-    done
-
-    name=$(sed "${nameLine}q;d" "$namesFile");
-    surname=$(sed "${surnameLine}q;d" "$surnamesFile");
-
+#  if [ ! -f "$namesFile" ];
+#  then
+#    echo "File $namesFile does not exist"
+#    exit 1;
+#  elif [ ! -f "$surnamesFile" ];
+#  then
+#    echo "File $surnamesFile does not exist"
+#    exit 1 ;
+#  else
+#    FLOOR=1
+#    NAME_RANGE=$(< "./names" wc -l) #number of lines is the range RANDOM can act
+#    SURNAME_RANGE=$(< "./surnames" wc -l) #number of lines is the range RANDOM can act
+#
+#    nameLine=0   #initialize
+#    surnameLine=0
+#    while [ "$nameLine" -le $FLOOR ]
+#    do
+#      nameLine=$RANDOM
+#      let "nameLine%=$NAME_RANGE"  # Scales $number down within $DAY_RANGE.
+#    done
+#
+#    while [ "$surnameLine" -le $FLOOR ]
+#    do
+#      surnameLine=$RANDOM
+#      let "surnameLine%=$SURNAME_RANGE"  # Scales $number down within $DAY_RANGE.
+#    done
+#
+#    name=$(sed "${nameLine}q;d" "$namesFile");
+#    surname=$(sed "${surnameLine}q;d" "$surnamesFile");
+#   fi
     #code to generate random alphanumerics for names and surnames
-    #FLOOR=3
-    #let strLength=$RANDOM+$FLOOR;
-    #name=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
-    #surname=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
+    FLOOR=3
+    let strLength=$RANDOM+$FLOOR;
+    name=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
+    surname=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
 
     echo "$name $surname"
-  fi
+
 }
 
 generate_random_date(){

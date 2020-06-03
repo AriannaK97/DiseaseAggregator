@@ -3,8 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <signal.h>
-#include <bits/sigaction.h>
+#include <signal.h>s
 #include "../../header/diseaseAggregator.h"
 #include "../../header/communication.h"
 

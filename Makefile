@@ -1,9 +1,9 @@
 CC	=	gcc
 FLAGS   =	-Wall	-g	-c	-D_POSIX_C_SOURCE=199309L
 
-all: diseaseAggregator_server diseaseMonitor_client
+all: diseaseAggregator diseaseMonitor_client
 
-diseaseAggregator_server:   main.o  diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	communication.o
+diseaseAggregator:   main.o  diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	communication.o
 	$(CC)   -o diseaseAggregator_server main.o diseaseAggregator.o list_lib.o	 data_io.o   redBlackTree.o  command_lib.o   hashTable.o	communication.o
 
 diseaseMonitor_client:  diseaseMonitorApp.o data_io.o   redBlackTree.o  command_lib.o   hashTable.o list_lib.o	diseaseAggregator.o	communication.o
@@ -40,7 +40,7 @@ communication.o:	src/server/communication.c
 	$(CC)	$(FLAGS)	src/server/communication.c
 
 clean:
-	rm	-rf *.o diseaseMonitor_client diseaseAggregator_server
+	rm	-rf *.o diseaseMonitor_client diseaseAggregator
 	rm -rf worker*
 	rm -rf aggregator_server
 	rm -rf log_file.*
