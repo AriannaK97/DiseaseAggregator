@@ -55,9 +55,10 @@ void diseaseFrequency(CmdManager* manager, char* virusName, Date* date1, Date* d
         sprintf(message, "null");
         manager->workerLog->fails+=1;
     }else{
-        sprintf(message, "%d", iterator.counter);
-        writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
+        sprintf(message, "%d\n", iterator.counter);
+        manager->workerLog->successes+=1;
     }
+    writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
     //fprintf(stdout, "\n~$:");
 }
 
@@ -70,7 +71,7 @@ void diseaseFrequency(CmdManager* manager, char* virusName, Date* date1, Date* d
 void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , Date* date1, Date* date2){
     HashElement iterator = hashITERATOR(manager->diseaseHashTable);
     char* message = calloc(sizeof(char), manager->bufferSize + 1);
-    int* ageRangeCasesArray = calloc(sizeof(int), 4);
+    AgeRange* ageRangeCasesArray = calloc(sizeof(AgeRange), 4);
     float total = 0;
     iterator.country = country;
     iterator.virus = disease;
@@ -87,43 +88,63 @@ void topk_AgeRanges(CmdManager* manager, int k, char* country, char* disease , D
     }else{
         Node* currentNode = iterator.AgeRangeNodes->head;
         AgeRangeStruct* item;
+
+        for (int j = 0; j < 4; ++j) {
+            ageRangeCasesArray[j].index = j;
+            ageRangeCasesArray[j].cases = 0;
+        }
+
         while(currentNode != NULL){
             item = currentNode->item;
             total += item->dataSum;
             if (item->data <= 20){
-                ageRangeCasesArray[0] = item->dataSum;
+                ageRangeCasesArray[0].cases = item->dataSum;
             }else if(item->data <= 40){
-                ageRangeCasesArray[1] = item->dataSum;
+                ageRangeCasesArray[1].cases = item->dataSum;
             }else if(item->data <= 60){
-                ageRangeCasesArray[2] = item->dataSum;
+                ageRangeCasesArray[2].cases = item->dataSum;
             }else if(item->data <= 120){
-                ageRangeCasesArray[3] = item->dataSum;
+                ageRangeCasesArray[3].cases = item->dataSum;
             }
             currentNode = currentNode->next;
         }
+        qsort(ageRangeCasesArray, 4, sizeof(AgeRange), compareTopkAgeRanges);
         if(k > 4){
             k = 4;
         }
 
-        int i = 0;
-        while (i < k){
+        int stop = k;
+        for (int i = 3; i >= 0; i--){
             char *temp = calloc(sizeof(char), 12);
-            if (i==0){
-                sprintf(temp, "0-20: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
-            }else if(i==1){
-                sprintf(temp, "21-40: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
-            }else if(i==2){
-                sprintf(temp, "41-60: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
-            }else if(i==3){
-                sprintf(temp, "60+: %.f%%\n", (float)ageRangeCasesArray[i]/total*100);
+            if (ageRangeCasesArray[i].index==0){
+                sprintf(temp, "0-20: %.f%%\n", ((float)ageRangeCasesArray[i].cases)/total*100);
+            }else if(ageRangeCasesArray[i].index==1){
+                sprintf(temp, "21-40: %.f%%\n", ((float)ageRangeCasesArray[i].cases)/total*100);
+            }else if(ageRangeCasesArray[i].index==2){
+                sprintf(temp, "41-60: %.f%%\n", ((float)ageRangeCasesArray[i].cases)/total*100);
+            }else if(ageRangeCasesArray[i].index==3){
+                sprintf(temp, "60+: %.f%%\n", ((float)ageRangeCasesArray[i].cases)/total*100);
+            } else{
+                sprintf(temp, "null");
             }
             strcat(message, temp);
-            i++;
+            stop--;
             free(temp);
+            if(stop==0){
+                break;
+            }
         }
+        free(ageRangeCasesArray);
         writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);
     }
 }
+
+int compareTopkAgeRanges (const void * a, const void * b){
+    AgeRange *aa = (AgeRange*)a;
+    AgeRange *bb = (AgeRange*)b;
+    return ((aa->cases)-(bb->cases));
+}
+
 
 /**
  * Search the record in system with the given recordID
@@ -353,11 +374,11 @@ void exitMonitor(CmdManager* manager){
     for (int i = 0; i < manager->numOfDirectories; ++i) {
         deallockFileExplorer(manager->fileExplorer[i]);
     }
-    deallockWorkerInfo(manager->workerInfo);
+    //deallockWorkerInfo(manager->workerInfo);
 
     free(manager->workerLog);
 
-    free(manager->input_dir);
+    //free(manager->input_dir);
 
     strcpy(message, "kill me father, for I have sinned");
     writeInFifoPipe(manager->fd_client_w, message, manager->bufferSize + 1);

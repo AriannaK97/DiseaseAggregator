@@ -32,6 +32,10 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
     strcat(dirPath, "/");
     int numOfSubDirectories = 0;
     while((in_dir = readdir(FD))){
+        if (!strcmp (in_dir->d_name, "."))
+            continue;
+        if (!strcmp (in_dir->d_name, ".."))
+            continue;
         numOfSubDirectories+=1;
     }
     rewinddir(FD);
@@ -75,11 +79,12 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
         strcpy(newItem->dirPath, subDirPath);
 
         listNode = nodeInit(newItem);
+        //printf("%s\n", in_dir->d_name);
         if(aggregatorServerManager->directoryDistributor[distributionPointer] == NULL){
             aggregatorServerManager->directoryDistributor[distributionPointer] = linkedListInit(listNode);
-        } else
+        } else {
             push(listNode, aggregatorServerManager->directoryDistributor[distributionPointer]);
-
+        }
 
         distributionPointer++;
 
@@ -279,7 +284,7 @@ bool receiveStats(AggregatorServerManager* aggregatorServerManager, int workerId
             /*read actual message from fifo*/
             fileName = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
             readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, fileName,(aggregatorServerManager->bufferSize)+1);
-            //fprintf(stdout, "\n%s\n%s\n",fileName, country);
+            fprintf(stdout, "\n%s\n%s\n",fileName, country);
 
             /*read per disease*/
             messageSize = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
@@ -290,13 +295,13 @@ bool receiveStats(AggregatorServerManager* aggregatorServerManager, int workerId
                 /*read actual message from fifo*/
                 disease = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
                 readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, disease,(aggregatorServerManager->bufferSize)+1);
-                //fprintf(stdout, "%s\n", disease);
+                fprintf(stdout, "%s\n", disease);
 
                 for (int l = 0; l < 4; l++) {
                     /*read actual message from fifo*/
                     message = calloc(sizeof(char), aggregatorServerManager->bufferSize+1);
                     readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, message,(aggregatorServerManager->bufferSize)+1);
-                    //fprintf(stdout, "%s\n", message);
+                    fprintf(stdout, "%s\n", message);
                     free(message);
                 }
 
@@ -384,7 +389,6 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* pAggregatorServerMa
     char* simpleCommand = NULL;
     char* arguments = NULL;
     char* message = NULL;
-    //char* line = NULL;
     char* answer = NULL;
     size_t length = 0;
 
@@ -448,11 +452,12 @@ void DiseaseAggregatorServerManager(AggregatorServerManager* pAggregatorServerMa
                         } else{
                             pAggregatorServerManager->fail +=1;
                         }
+                        free(answer);
                     }
                 }
                 fprintf(stdout, "~$:");
                 free(message);
-                free(command);
+                //free(command);
             }else{
                 fprintf(stdout,"The command you have entered does not exist.\n You can see the "
                                "available commands by hitting /help.\n~$:");
@@ -467,17 +472,16 @@ void commandServer(CmdManager* manager) {
     char *command = NULL;
     char *simpleCommand = NULL;
     char *line = calloc(sizeof(char), (manager->bufferSize) + 1);
-    int reader;
+    int reader = -1;
 
     do{
 
-        if(sig_flag){
+        reader = read(manager->fd_client_r, line, manager->bufferSize + 1);
+
+        if(sig_flag && reader < 0){
             reader = read(manager->fd_client_r, line, manager->bufferSize + 1);
             sig_flag = false;
-        } else{
-            reader = read(manager->fd_client_r, line, manager->bufferSize + 1);
         }
-
 
         if (reader < 0) {
             break;
@@ -646,7 +650,7 @@ void freeAggregatorManager(AggregatorServerManager *aggregatorManager){
     free(aggregatorManager->directoryDistributor);
     free(aggregatorManager->workersArray);
     free(aggregatorManager->input_dir);
-    free(aggregatorServerManager->line);
+    //free(aggregatorServerManager->line);
     free(aggregatorManager);
 }
 
@@ -672,10 +676,9 @@ void nodeDirListItemDeallock(DirListItem* dirListItem){
 }
 
 
-/**
- * Signal handling for server
- * */
-
+/*****************************************************************************
+ *                         Signal Handling for Server                        *
+ *****************************************************************************/
 
 void respawnWorker(int sig){
     sig_flag = true;
@@ -804,11 +807,6 @@ void aggregatorLogFile(int sig){
 }
 
 
-void debug(int sig){
-    printf("hi, I am stupid!\n");
-}
-
-
 void checkForNewFilesInSubDirs_handler(int sig){
     sig_flag = true;
     Node* node;
@@ -817,7 +815,6 @@ void checkForNewFilesInSubDirs_handler(int sig){
     DirListItem* item;
     int dirNum = 0;
     struct dirent* in_file;
-    int numOfFileInSubDirectory = 0;
     int previousNumOfFiles = 0;
     int fileArrayPosition = 0;
     bool fileExists = true;
@@ -827,7 +824,12 @@ void checkForNewFilesInSubDirs_handler(int sig){
     char* temp =  calloc(sizeof(char), cmdManager->bufferSize + 1);
     char *subDirPath = calloc(sizeof(char), cmdManager->bufferSize + 1);
 
-    printf("New files spotted\n");
+    node = cmdManager->directoryList->head;
+    while (node != NULL){
+        item = (DirListItem*)node->item;
+        node = node->next;
+    }
+
     node = cmdManager->directoryList->head;
     while (node != NULL) {
         item = (DirListItem*)node->item;
@@ -836,81 +838,189 @@ void checkForNewFilesInSubDirs_handler(int sig){
         if (NULL == (FD = opendir(item->dirPath))) {
             fprintf(stderr, "Error : Failed to open input directory - %s\n", strerror(errno));
             exit(1);
-        }else{
+        }
 
-            numOfNewFiles = countFilesInDirectory(FD);
-            if(numOfNewFiles != cmdManager->fileExplorer[dirNum]->fileArraySize) {
-                printf("%s %d\n", item->dirName, numOfNewFiles);
-                previousNumOfFiles = cmdManager->fileExplorer[dirNum]->fileArraySize;
-                fileArrayPosition = cmdManager->fileExplorer[dirNum]->fileArraySize;
-                cmdManager->fileExplorer[dirNum]->fileArraySize = numOfFileInSubDirectory;
+        numOfNewFiles = countFilesInDirectory(FD);
+        if(numOfNewFiles > cmdManager->fileExplorer[dirNum]->fileArraySize) {
+            previousNumOfFiles = cmdManager->fileExplorer[dirNum]->fileArraySize;
+            fileArrayPosition = cmdManager->fileExplorer[dirNum]->fileArraySize;
+            cmdManager->fileExplorer[dirNum]->fileArraySize = numOfNewFiles;
 
-                /*reallocate memory*/
-/*                cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem *) realloc(
-                        cmdManager->fileExplorer[dirNum]->fileItemsArray,
-                        sizeof(FileItem) * (cmdManager->fileExplorer[dirNum]->fileArraySize));*/
+            /*reallocate memory*/
+            cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem *) realloc(
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray,
+                    sizeof(FileItem) * (cmdManager->fileExplorer[dirNum]->fileArraySize));
 
-                while ((in_file = readdir(FD))) {
-                    if (!strcmp(in_file->d_name, "."))
-                        continue;
-                    if (!strcmp(in_file->d_name, ".."))
-                        continue;
 
-                    for (int i = 0; i < previousNumOfFiles; i++) {
-                        printf("%s, %s\n", cmdManager->fileExplorer[dirNum]->fileItemsArray[i].fileName, in_file->d_name);
-                        if(strcmp(cmdManager->fileExplorer[dirNum]->fileItemsArray[i].fileName, in_file->d_name) != 0){
-                            fileExists = false;
-                        }
+
+            while ((in_file = readdir(FD))) {
+                if (!strcmp(in_file->d_name, "."))
+                    continue;
+                if (!strcmp(in_file->d_name, ".."))
+                    continue;
+
+                fileExists = false;
+                for (int i = 0; i < previousNumOfFiles; i++) {
+                    if(strcmp(cmdManager->fileExplorer[dirNum]->fileItemsArray[i].fileName, in_file->d_name) == 0){
+                        fileExists = true;
                     }
-
-                    if(!fileExists){
-                        strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].fileName, in_file->d_name);
-                        fprintf(stdout, "found it!");
-
-                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].numOfDiseases = 0;
-
-                        strcpy(subDirPath, item->dirPath);
-                        strcat(subDirPath, "/");
-                        strcat(subDirPath, in_file->d_name);
-                        strcpy(temp, in_file->d_name);
-
-                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->day = atoi(strtok(temp, "-"));
-                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->month = atoi(strtok(NULL, "-"));
-                        cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->year = atoi(strtok(NULL, "-"));
-
-                        strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath, subDirPath);
-
-                        strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].fileName, in_file->d_name);
-
-                        entry_file = fopen(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath,"r");
-                        if (entry_file == NULL) {
-                            fprintf(stderr, "Error : Failed to open entry file %s %s - %s\n",
-                                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath,
-                                    cmdManager->fileExplorer[dirNum]->country, strerror(errno));
-                            exit(1);
-                        }
-
-                        cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
-                                                     cmdManager->fileExplorer[dirNum], fileArrayPosition, false);
-
-                        fclose(entry_file);
-                        fileArrayPosition += 1;
-                    }
-                    fileExists = false;
-
                 }
 
-                printf("opening dir\n");
-                closedir(FD);
-                dirNum+=1;
+                if(!fileExists){
+
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile =  calloc(sizeof(struct Date), 1);
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath = calloc(sizeof(char), cmdManager->bufferSize + 1);
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].fileName = calloc(sizeof(char), cmdManager->bufferSize + 1);
+                    strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].fileName, in_file->d_name);
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].numOfDiseases = 0;
+
+                    strcpy(subDirPath, item->dirPath);
+                    strcat(subDirPath, "/");
+                    strcat(subDirPath, in_file->d_name);
+                    strcpy(temp, in_file->d_name);
+
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->day = atoi(strtok(temp, "-"));
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->month = atoi(strtok(NULL, "-"));
+                    cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].dateFile->year = atoi(strtok(NULL, "-"));
+
+                    strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath, subDirPath);
+
+                    strcpy(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].fileName, in_file->d_name);
+
+                    entry_file = fopen(cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath,"r");
+                    if (entry_file == NULL) {
+                        fprintf(stderr, "Error : Failed to open entry file %s %s - %s\n",
+                                cmdManager->fileExplorer[dirNum]->fileItemsArray[fileArrayPosition].filePath,
+                                cmdManager->fileExplorer[dirNum]->country, strerror(errno));
+                        exit(1);
+                    }
+
+                    cmdManager = read_input_file(entry_file, getMaxFromFile(entry_file, LINE_LENGTH), cmdManager,
+                                                 cmdManager->fileExplorer[dirNum], fileArrayPosition, true);
+
+                    fclose(entry_file);
+                    fileArrayPosition += 1;
+
+                    /**send statistics*/
+                    /*write the country*/
+                    writeInFifoPipe(cmdManager->fd_client_w, cmdManager->fileExplorer[dirNum]->country,(cmdManager->bufferSize) + 1);
+
+                    /*write the file name*/
+                    writeInFifoPipe(cmdManager->fd_client_w, cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileName,
+                                    (cmdManager->bufferSize) + 1);
+
+                    /*write number of diseases for the country*/
+                    messageSize = calloc(sizeof(char), cmdManager->bufferSize + 1);
+                    sprintf(messageSize, "%d", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].numOfDiseases);
+                    writeInFifoPipe(cmdManager->fd_client_w, messageSize, (cmdManager->bufferSize)  + 1);
+                    free(messageSize);
+
+                    for (int k = 0; k < cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].numOfDiseases; k++) {
+                        /*write disease*/
+
+                        writeInFifoPipe(cmdManager->fd_client_w,
+                                        cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->disease,(cmdManager->bufferSize) + 1);
+                        /*write stats for age ranges*/
+                        for (int l = 0; l < 4; l++) {
+                            message = calloc(sizeof(char), (cmdManager->bufferSize) + 1);
+                            if(l == 0){
+                                sprintf(message, "Age range 0-20 years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
+                            }else if(l == 1){
+                                sprintf(message, "Age range 21-40 years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
+                            }else if(l == 2){
+                                sprintf(message, "Age range 41-60 years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
+                            }else if(l == 3){
+                                sprintf(message, "Age range 60+ years: %d cases", cmdManager->fileExplorer[dirNum]->fileItemsArray[previousNumOfFiles].fileDiseaseStats[k]->AgeRangeCasesArray[l]);
+                            }
+
+                            writeInFifoPipe(cmdManager->fd_client_w, message,(cmdManager->bufferSize) + 1);
+
+                            free(message);
+                        }
+                        /*end of stat batch*/
+                        writeInFifoPipe(cmdManager->fd_client_w, "next",(cmdManager->bufferSize) + 1);
+                    }
+                    /*send end of transmission message*/
+                    writeInFifoPipe(cmdManager->fd_client_w, "StatsDone", cmdManager->bufferSize);
+                }
             }
         }
+        closedir(FD);
         node = node->next;
         dirNum+=1;
     }
 }
 
 
+
+void debug(int signo, siginfo_t *si, void *data){
+    sig_flag = true;
+    (void)signo;
+    (void)data;
+    printf("hi, I am stupid!\n");
+}
+
+
+void receiveStatsUpdate(int signo, siginfo_t *si, void *data){
+    sig_flag = true;
+    pid_t childThatSignaled;
+    int workerId;
+
+    (void)signo;
+    (void)data;
+
+    childThatSignaled = (unsigned long)si->si_pid;
+    for (int i = 0; i < aggregatorServerManager->numOfWorkers; ++i) {
+        if(aggregatorServerManager->workersArray[i].workerPid == childThatSignaled){
+            workerId = i;
+            break;
+        }
+    }
+
+    char *country, *fileName, *disease, *message, *messageSize;
+    int numOfDiseases;
+
+    /*receives country*/
+    country = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
+    readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, country,(aggregatorServerManager->bufferSize)+1);
+
+    /*receives filename*/
+    fileName = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
+    readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, fileName,(aggregatorServerManager->bufferSize)+1);
+    fprintf(stdout, "\n%s\n%s\n",fileName, country);
+
+    /*read number of diseases*/
+    messageSize = calloc(sizeof(char), aggregatorServerManager->bufferSize + 1);
+    readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, messageSize, (aggregatorServerManager->bufferSize)+1);
+    numOfDiseases = atoi(messageSize);
+    free(messageSize);
+    for (int k = 0; k < numOfDiseases; k++) {
+        /*read disease from fifo*/
+        disease = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
+        readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, disease,(aggregatorServerManager->bufferSize)+1);
+        fprintf(stdout, "%s\n", disease);
+
+        for (int l = 0; l < 4; l++) {
+            /*read actual message from fifo*/
+            message = calloc(sizeof(char), aggregatorServerManager->bufferSize+1);
+            readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, message,(aggregatorServerManager->bufferSize)+1);
+            fprintf(stdout, "%s\n", message);
+            free(message);
+        }
+        /*read actual message from fifo*/
+        message = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
+        readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, message,(aggregatorServerManager->bufferSize)+1);
+        free(message);
+        free(disease);
+    }
+    free(fileName);
+    free(country);
+
+    message = calloc(sizeof(char), (aggregatorServerManager->bufferSize)+1);
+    readFromFifoPipe(aggregatorServerManager->workersArray[workerId].fd_client_r, message,(aggregatorServerManager->bufferSize)+1);
+    free(message);
+    fprintf(stdout, "~$:");
+}
 
 void sigintHandler(int sig){
     if(!childJustDies){

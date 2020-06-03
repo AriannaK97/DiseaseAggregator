@@ -139,7 +139,7 @@ PatientCase* getPatient(char* buffer, FileExplorer* fileExplorer, int fileExplor
     newPatient->country = malloc(DATA_SPACE*sizeof(char));
     strcpy(newPatient->country, fileExplorer->country);
     if(!setDate(newPatient, fileExplorer->fileItemsArray[fileExplorerPointer].fileName)){
-        fprintf(stderr, "Date Error!\n");
+        fprintf(stderr, "Error!\n");
         free(newPatient);
         return NULL;
     }
@@ -151,7 +151,7 @@ bool setDate(PatientCase *patient, char *buffer){
     bool _ret = true;
     char *temp = malloc(DATA_SPACE*sizeof(char));
     strcpy(temp, buffer);
-    if(strcmp(patient->type, "ENTRY")==0){
+    if(strcmp(patient->type, "ENTER")==0){
         patient->entryDate->day = atoi(strtok(temp,"-"));
         patient->entryDate->month = atoi(strtok(NULL, "-"));
         patient->entryDate->year = atoi(strtok(NULL, "-"));
@@ -214,7 +214,7 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
     while(getline(&buffer, &maxStrLength, patientRecordsFile) >= 0){
         newPatient = getPatient(buffer, fileExplorer, fileExplorerPointer);
         if(newPatient != NULL){
-            if(strcmp(newPatient->type, "ENTRY")==0){
+            if(strcmp(newPatient->type, "ENTER")==0){
                 newNode = nodeInit(newPatient);
                 if(cmdManager->patientList == NULL){
                     cmdManager->patientList = linkedListInit(newNode);
@@ -231,27 +231,19 @@ CmdManager* read_input_file(FILE* patientRecordsFile, size_t maxStrLength, CmdMa
                 }else{
                     nodeItemDeallock(newPatient);
                     fileExplorer->failedEntries+=1;
-                    //fprintf(stderr, "Error\n");
+                    fprintf(stderr, "ERROR\n");
                 }
             }
         }
     }
-/*
-    fprintf(stdout, "%s\n", fileExplorer->fileItemsArray[fileExplorerPointer].fileName);
-    fprintf(stdout,"%s\n", fileExplorer->country);*/
 
     fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats = getFileStats(cmdManager, fileExplorer->country, fileExplorer->fileItemsArray[fileExplorerPointer].dateFile);
     fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases = cmdManager->numOfDiseases;
 
-/*    fprintf(stdout, "numOfDiseases: %d\n",fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases);
-    for (int i = 0; i < fileExplorer->fileItemsArray[fileExplorerPointer].numOfDiseases; i++) {
-        fprintf(stdout,"%s\n0-20 : %d\n21-40 : %d\n41-60 : %d\n61+ : %d\n",
-               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->disease,
-               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[0],
-               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[1],
-               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[2],
-               fileExplorer->fileItemsArray[fileExplorerPointer].fileDiseaseStats[i]->AgeRangeCasesArray[3]);
-    }*/
+    /**if read is called from the child's signal handler for SIGUSR1*/
+    if(signalServerToreadStats){
+        kill(getppid(), SIGUSR1);
+    }
 
     free(buffer);
     //printList(cmdManager->patientList);
@@ -374,19 +366,24 @@ CmdManager* read_directory_list(CmdManager* cmdManager){
             fprintf(stderr, "Error : Failed to open input directory - %s\n", strerror(errno));
             exit(1);
         }
-        printf("opening dir\n");
+        //printf("opening %s\n", item->dirName);
 
+        /*count the number of date files in the subdirectory*/
         cmdManager->fileExplorer[dirNum]->fileArraySize = countFilesInDirectory(FD);
+
         cmdManager->fileExplorer[dirNum]->country = calloc(sizeof(char), DIR_LEN);
         cmdManager->fileExplorer[dirNum]->successfulEntries = 0;
         cmdManager->fileExplorer[dirNum]->failedEntries = 0;
+
+        /*create array of input date files*/
         cmdManager->fileExplorer[dirNum]->fileItemsArray = (FileItem*) calloc(sizeof(FileItem), (cmdManager->fileExplorer[dirNum]->fileArraySize));
         cmdManager->fileExplorer[dirNum]->fileItemsArray = createFileArray(FD, item, cmdManager->fileExplorer[dirNum]->fileArraySize, cmdManager->bufferSize);
+
         strcpy(cmdManager->fileExplorer[dirNum]->country, item->dirName);
 
         for (int i = 0; i < cmdManager->fileExplorer[dirNum]->fileArraySize; i++) {
             entry_file = fopen(cmdManager->fileExplorer[dirNum]->fileItemsArray[i].filePath, "r");
-            printf("opening file\n");
+            //printf("opening file\n");
             if (entry_file == NULL) {
                 fprintf(stderr, "Error : Failed to open entry file %s %s - %s\n", cmdManager->fileExplorer[dirNum]->fileItemsArray[i].filePath, cmdManager->fileExplorer[dirNum]->country, strerror(errno));
                 exit(1);

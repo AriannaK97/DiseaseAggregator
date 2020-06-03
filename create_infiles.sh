@@ -84,7 +84,7 @@ generate_entry_type(){
   then
     echo "EXIT"
   else
-    echo "ENTRY"
+    echo "ENTER"
   fi
 }
 
@@ -117,13 +117,13 @@ get_random_disease(){
 create_new_record(){
   #id=$RANDOM
   id=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
-  #entryType=$(generate_entry_type)
+  entryType=$(generate_entry_type)
   name=$(generate_random_name)
   disease=$(get_random_disease)
   age=$(get_random_age)
-  echo "$id" "ENTRY" "$name" "$disease" "$age"
+  echo "$id" "$entryType" "$name" "$disease" "$age"
 #  if [ "$entryType" == "EXIT" ]; then
-#    echo "$id" "ENTRY" "$name" "$disease" "$age"
+#    echo "$id" "ENTER" "$name" "$disease" "$age"
 #    echo "$id" "$entryType" "$name" "$disease" "$age"
 #  else
 #    echo "$id" "$entryType" "$name" "$disease" "$age"

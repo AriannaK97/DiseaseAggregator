@@ -130,6 +130,6 @@ void sigintHandler(int signal);
 
 void checkForNewFilesInSubDirs_handler(int sig);
 
-void debug(int sig);
+void debug(int signo, siginfo_t *si, void *data);
 
 #endif //DISEASEAGGREGATOR_DISEASEAGGREGATOR_H

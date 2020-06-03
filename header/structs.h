@@ -64,6 +64,11 @@ typedef struct CmdManager{
     int workerId;
 }CmdManager;
 
+typedef struct AgeRange{
+    int index;
+    int cases;
+}AgeRange;
+
 typedef struct MonitorInputArguments{
     size_t bucketSize;
     int diseaseHashtableNumOfEntries;

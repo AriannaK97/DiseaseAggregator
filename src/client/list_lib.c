@@ -18,7 +18,7 @@ List* linkedListInit(Node* node){
     List* newList = (List*)calloc(sizeof(List), 1);
     newList->head = node;
     newList->tail = node;
-    newList->itemCount = 0;
+    newList->itemCount = 1;
     return newList;
 }
 

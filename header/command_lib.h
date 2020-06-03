@@ -7,6 +7,7 @@
 
 #include "diseaseAggregator.h"
 
+#define MAXIMUM(x, y) (((x) > (y)) ? (x) : (y))
 
 typedef struct CmdManager CmdManager;
 typedef struct Date Date;
@@ -24,6 +25,8 @@ void numPatientAdmissions(CmdManager* manager, char* disease, Date* date1, Date*
 void numPatientDischarges(CmdManager* manager, char* disease, Date* date1, Date* date2, char* country);
 
 void exitMonitor(CmdManager* manager);
+
+int compareTopkAgeRanges (const void * a, const void * b);
 
 void helpDesc();
 
