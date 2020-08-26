@@ -1,7 +1,11 @@
 cmake-build-debug
+input*
+sdi1500050
+25-7-2013
 .idea/
 input_dir
 CMakeLists.txt
 LargeCountriesFile
+AnnaAikateriniKavvadaProject2
 *.o
 aux

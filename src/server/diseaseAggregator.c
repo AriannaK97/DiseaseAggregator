@@ -79,7 +79,7 @@ AggregatorServerManager* readDirectoryFiles(AggregatorInputArguments* arguments)
         strcpy(newItem->dirPath, subDirPath);
 
         listNode = nodeInit(newItem);
-        //printf("%s\n", in_dir->d_name);
+        printf("%s\n", in_dir->d_name);
         if(aggregatorServerManager->directoryDistributor[distributionPointer] == NULL){
             aggregatorServerManager->directoryDistributor[distributionPointer] = linkedListInit(listNode);
         } else {

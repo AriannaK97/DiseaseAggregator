@@ -151,7 +151,7 @@ bool setDate(PatientCase *patient, char *buffer){
     bool _ret = true;
     char *temp = malloc(DATA_SPACE*sizeof(char));
     strcpy(temp, buffer);
-    if(strcmp(patient->type, "ENTER")==0){
+    if(strcmp(patient->type, "ENTRY")==0){
         patient->entryDate->day = atoi(strtok(temp,"-"));
         patient->entryDate->month = atoi(strtok(NULL, "-"));
         patient->entryDate->year = atoi(strtok(NULL, "-"));
